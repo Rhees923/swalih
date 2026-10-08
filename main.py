@@ -1,210 +1,181 @@
-from flask import Flask, render_template_string, request
+import streamlit as st
 
-app = Flask(__name__)
+st.set_page_config(
+    page_title="Python Calculator",
+    page_icon="🐍",
+    layout="centered"
+)
 
-HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Python Calculator</title>
+# -----------------------------
+# CSS
+# -----------------------------
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+st.markdown("""
+<style>
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #0f172a, #1e293b);
-        }
+.stApp {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+}
 
-        .calculator {
-            width: 350px;
-            padding: 25px;
-            border-radius: 25px;
-            background: rgba(255,255,255,0.08);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
-            backdrop-filter: blur(15px);
-        }
+.calculator-title {
+    text-align: center;
+    color: white;
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 25px;
+}
 
-        h1 {
-            text-align: center;
-            color: white;
-            margin-bottom: 20px;
-        }
+.result {
+    background: #020617;
+    color: white;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: right;
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
 
-        .display {
-            width: 100%;
-            height: 80px;
-            border: none;
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 20px;
-            background: #020617;
-            color: white;
-            font-size: 30px;
-            text-align: right;
-            outline: none;
-        }
+div.stButton > button {
+    width: 100%;
+    height: 60px;
+    border-radius: 15px;
+    border: none;
+    font-size: 20px;
+    font-weight: bold;
+    background: #334155;
+    color: white;
+}
 
-        .buttons {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-        }
+div.stButton > button:hover {
+    background: #475569;
+    color: white;
+}
 
-        button {
-            height: 65px;
-            border: none;
-            border-radius: 15px;
-            font-size: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            background: #334155;
-            color: white;
-            transition: 0.15s;
-        }
+.footer {
+    text-align: center;
+    color: #94a3b8;
+    margin-top: 25px;
+}
 
-        button:hover {
-            transform: scale(1.05);
-            background: #475569;
-        }
+</style>
+""", unsafe_allow_html=True)
 
-        .operator {
-            background: #7c3aed;
-        }
+# -----------------------------
+# Session State
+# -----------------------------
 
-        .operator:hover {
-            background: #8b5cf6;
-        }
+if "expression" not in st.session_state:
+    st.session_state.expression = ""
 
-        .clear {
-            background: #dc2626;
-        }
+if "result" not in st.session_state:
+    st.session_state.result = ""
 
-        .equal {
-            background: #16a34a;
-        }
+# -----------------------------
+# Calculator Function
+# -----------------------------
 
-        .zero {
-            grid-column: span 2;
-        }
+def calculate():
 
-        .footer {
-            color: #94a3b8;
-            text-align: center;
-            margin-top: 20px;
-            font-size: 13px;
-        }
-    </style>
-</head>
-
-<body>
-
-<div class="calculator">
-
-    <h1>🐍 Python Calculator</h1>
-
-    <form method="POST">
-
-        <input
-            class="display"
-            type="text"
-            name="expression"
-            value="{{ expression }}"
-            placeholder="0"
-            readonly
-        >
-
-        <div class="buttons">
-
-            <button class="clear" name="value" value="C">C</button>
-            <button name="value" value="(">(</button>
-            <button name="value" value=")">)</button>
-            <button class="operator" name="value" value="/">÷</button>
-
-            <button name="value" value="7">7</button>
-            <button name="value" value="8">8</button>
-            <button name="value" value="9">9</button>
-            <button class="operator" name="value" value="*">×</button>
-
-            <button name="value" value="4">4</button>
-            <button name="value" value="5">5</button>
-            <button name="value" value="6">6</button>
-            <button class="operator" name="value" value="-">−</button>
-
-            <button name="value" value="1">1</button>
-            <button name="value" value="2">2</button>
-            <button name="value" value="3">3</button>
-            <button class="operator" name="value" value="+">+</button>
-
-            <button class="zero" name="value" value="0">0</button>
-            <button name="value" value=".">.</button>
-            <button class="equal" name="value" value="=">=</button>
-
-        </div>
-
-    </form>
-
-    <div class="footer">
-        Made with Python 🐍
-    </div>
-
-</div>
-
-</body>
-</html>
-"""
-
-def safe_calculate(expression):
-    """Calculate only basic mathematical expressions safely."""
+    expression = st.session_state.expression
 
     allowed = "0123456789+-*/(). "
 
+    if not expression:
+        return
+
     if not all(char in allowed for char in expression):
-        return "Error"
+        st.session_state.result = "Error"
+        return
 
     try:
-        result = eval(expression, {"__builtins__": None}, {})
-        return str(result)
+        answer = eval(
+            expression,
+            {"__builtins__": None},
+            {}
+        )
+
+        st.session_state.result = str(answer)
+
     except:
-        return "Error"
+        st.session_state.result = "Error"
 
 
-@app.route("/", methods=["GET", "POST"])
-def calculator():
+# -----------------------------
+# Title
+# -----------------------------
 
-    expression = ""
+st.markdown(
+    '<div class="calculator-title">🐍 Python Calculator</div>',
+    unsafe_allow_html=True
+)
 
-    if request.method == "POST":
+# -----------------------------
+# Display
+# -----------------------------
 
-        value = request.form.get("value", "")
+display = (
+    st.session_state.result
+    if st.session_state.result
+    else st.session_state.expression
+)
 
-        if value == "C":
-            expression = ""
+st.markdown(
+    f'<div class="result">{display or "0"}</div>',
+    unsafe_allow_html=True
+)
 
-        elif value == "=":
-            old_expression = request.form.get("expression", "")
-            expression = safe_calculate(old_expression)
+# -----------------------------
+# Buttons
+# -----------------------------
 
-        else:
-            old_expression = request.form.get("expression", "")
-            expression = old_expression + value
+rows = [
+    ["C", "(", ")", "/"],
+    ["7", "8", "9", "*"],
+    ["4", "5", "6", "-"],
+    ["1", "2", "3", "+"],
+    ["0", ".", "=", "⌫"]
+]
 
-    return render_template_string(
-        HTML,
-        expression=expression
-    )
+for row in rows:
 
+    columns = st.columns(4)
 
-if __name__ == "__main__":
-    app.run(
-        host="0.0.0.0",
-        port=5000,
-        debug=True
-    )
+    for i, button in enumerate(row):
+
+        with columns[i]:
+
+            if st.button(button, key=button):
+
+                if button == "C":
+
+                    st.session_state.expression = ""
+                    st.session_state.result = ""
+
+                elif button == "=":
+
+                    calculate()
+
+                elif button == "⌫":
+
+                    st.session_state.expression = (
+                        st.session_state.expression[:-1]
+                    )
+
+                    st.session_state.result = ""
+
+                else:
+
+                    st.session_state.expression += button
+                    st.session_state.result = ""
+
+                st.rerun()
+
+# -----------------------------
+# Footer
+# -----------------------------
+
+st.markdown(
+    '<div class="footer">Made with Python 🐍</div>',
+    unsafe_allow_html=True
+)
