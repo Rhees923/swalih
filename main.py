@@ -1,34 +1,25 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-# ============================================================
-# PAGE CONFIG
-# ============================================================
-
 st.set_page_config(
-    page_title="Pastel Calculator",
+    page_title="iPhone Calculator",
     page_icon="🧮",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
 
-# ============================================================
-# HTML + CSS + JAVASCRIPT
-# ============================================================
-
 HTML_PAGE = r"""
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Pastel Calculator</title>
 
 <style>
 
 * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
@@ -36,62 +27,64 @@ html, body {
     padding: 0;
     width: 100%;
     min-height: 100%;
-    font-family: "Poppins", "Segoe UI", Arial, sans-serif;
+    background: #000;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "SF Pro Display",
+        "Segoe UI",
+        sans-serif;
 }
 
 body {
+    min-height: 700px;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    padding: 25px 15px;
 
     background:
         radial-gradient(
-            circle at 15% 12%,
-            rgba(255,255,255,.50),
-            transparent 28%
+            circle at 50% 20%,
+            rgba(255,255,255,.055),
+            transparent 35%
         ),
-        radial-gradient(
-            circle at 88% 86%,
-            rgba(255,255,255,.30),
-            transparent 25%
-        ),
-        #eac8f5;
+        #000;
 }
 
-/* ============================================================
-   CALCULATOR
-============================================================ */
+/* =========================================
+   PHONE CALCULATOR
+========================================= */
 
 .calculator {
-    width: min(100%, 350px);
+    width: min(100%, 370px);
+    padding: 30px 20px 25px;
 
-    padding: 28px 23px 25px;
-
-    border-radius: 34px;
+    border-radius: 42px;
 
     background:
         linear-gradient(
             145deg,
-            #ffffff,
-            #f7f7f9
+            #181818,
+            #080808
         );
 
     box-shadow:
-        16px 18px 35px rgba(142,105,157,.22),
-        -9px -9px 24px rgba(255,255,255,.55),
-        inset 1px 1px 2px rgba(255,255,255,.95);
+        0 35px 80px rgba(0,0,0,.8),
+        inset 0 1px 1px rgba(255,255,255,.08);
 
-    animation: rise .65s cubic-bezier(.2,.8,.2,1);
+    border: 1px solid rgba(255,255,255,.06);
+
+    animation: phoneIn .7s cubic-bezier(.2,.8,.2,1);
 }
 
-@keyframes rise {
+@keyframes phoneIn {
 
     from {
         opacity: 0;
         transform:
-            translateY(18px)
-            scale(.97);
+            translateY(35px)
+            scale(.92);
     }
 
     to {
@@ -102,61 +95,67 @@ body {
     }
 }
 
-/* ============================================================
-   BRAND
-============================================================ */
+/* =========================================
+   TOP BAR
+========================================= */
 
-.brand {
+.top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 
-    margin:
-        0 0 18px 4px;
-
-    font-size: 11px;
-
-    font-weight: 700;
-
-    letter-spacing: 3px;
-
-    text-transform: uppercase;
-
-    color: #b39abb;
+    padding: 0 5px 15px;
 }
 
-/* ============================================================
-   DISPLAY
-============================================================ */
+.logo {
+    color: #777;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
 
-.screen {
+.dot {
+    width: 7px;
+    height: 7px;
 
-    min-height: 92px;
+    border-radius: 50%;
 
-    padding:
-        15px 18px 13px;
-
-    margin-bottom: 27px;
-
-    border-radius: 25px;
-
-    background: #edf5f5;
+    background: #30d158;
 
     box-shadow:
+        0 0 12px rgba(48,209,88,.7);
 
-        inset 5px 5px 12px
-        rgba(196,209,210,.25),
+    animation: pulse 2s infinite;
+}
 
-        inset -5px -5px 12px
-        rgba(255,255,255,.95),
+@keyframes pulse {
 
-        5px 7px 15px
-        rgba(166,169,173,.15);
+    0%,100% {
+        opacity: .7;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.35);
+    }
+}
+
+/* =========================================
+   DISPLAY
+========================================= */
+
+.display {
+    min-height: 145px;
+
+    padding:
+        15px 10px 18px;
 
     display: flex;
-
     flex-direction: column;
 
+    justify-content: flex-end;
     align-items: flex-end;
-
-    justify-content: center;
 
     overflow: hidden;
 }
@@ -165,19 +164,23 @@ body {
 
     width: 100%;
 
-    min-height: 18px;
+    min-height: 25px;
 
     text-align: right;
 
-    font-size: 12px;
+    color: #666;
 
-    color: #9a9da1;
+    font-size: 18px;
+
+    font-weight: 400;
 
     white-space: nowrap;
 
     overflow: hidden;
 
     text-overflow: ellipsis;
+
+    margin-bottom: 3px;
 }
 
 .result {
@@ -186,17 +189,19 @@ body {
 
     text-align: right;
 
+    color: #fff;
+
     font-size: clamp(
-        35px,
-        10vw,
-        43px
+        54px,
+        15vw,
+        70px
     );
+
+    line-height: 1;
 
     font-weight: 300;
 
-    letter-spacing: -1.5px;
-
-    line-height: 1.2;
+    letter-spacing: -3px;
 
     white-space: nowrap;
 
@@ -204,16 +209,14 @@ body {
 
     text-overflow: ellipsis;
 
-    color: #74767b;
-
-    animation: numberIn .18s ease;
+    animation: resultIn .18s ease;
 }
 
-@keyframes numberIn {
+@keyframes resultIn {
 
     from {
-        opacity: .3;
-        transform: translateY(3px);
+        opacity: .4;
+        transform: translateY(5px);
     }
 
     to {
@@ -222,29 +225,29 @@ body {
     }
 }
 
-/* ============================================================
-   BUTTON GRID
-============================================================ */
+/* =========================================
+   KEYS
+========================================= */
 
 .keys {
 
     display: grid;
 
     grid-template-columns:
-        repeat(4, minmax(0, 1fr));
+        repeat(4, 1fr);
 
-    gap: 14px 12px;
+    gap: 12px;
 }
 
-/* ============================================================
-   BUTTONS
-============================================================ */
+/* =========================================
+   BUTTON
+========================================= */
 
 button {
 
-    border: 0;
+    border: none;
 
-    min-width: 0;
+    width: 100%;
 
     aspect-ratio: 1;
 
@@ -253,100 +256,123 @@ button {
     background:
         linear-gradient(
             145deg,
-            #f2f6f8,
-            #e8edf0
+            #3b3b3d,
+            #29292b
         );
 
-    color: #30343a;
+    color: white;
 
-    font:
-        500 15px
-        "Poppins",
-        "Segoe UI",
-        Arial,
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "SF Pro Display",
         sans-serif;
+
+    font-size: 27px;
+
+    font-weight: 400;
 
     cursor: pointer;
 
     box-shadow:
+        inset 0 1px 1px
+        rgba(255,255,255,.08),
 
-        6px 6px 12px
-        rgba(179,183,189,.38),
-
-        -5px -5px 11px
-        rgba(255,255,255,.96);
+        0 5px 12px
+        rgba(0,0,0,.5);
 
     transition:
-        transform .14s ease,
-        box-shadow .14s ease,
-        filter .14s ease;
-
-    -webkit-tap-highlight-color: transparent;
+        transform .12s ease,
+        filter .12s ease,
+        box-shadow .12s ease;
 }
 
 button:hover {
 
-    filter: brightness(1.025);
+    filter: brightness(1.15);
 
     transform:
         translateY(-2px);
-
-    box-shadow:
-
-        7px 8px 14px
-        rgba(179,183,189,.35),
-
-        -5px -5px 11px
-        rgba(255,255,255,.98);
 }
 
 button:active {
 
     transform:
-        translateY(1px)
-        scale(.94);
+        scale(.88);
+
+    filter:
+        brightness(.75);
 
     box-shadow:
-
-        inset 4px 4px 8px
-        rgba(179,183,189,.30),
-
-        inset -4px -4px 8px
-        rgba(255,255,255,.9);
+        inset 0 3px 8px
+        rgba(0,0,0,.45);
 }
 
-/* ============================================================
-   UTILITY BUTTONS
-============================================================ */
+/* =========================================
+   TOP FUNCTIONS
+========================================= */
 
 button.utility {
-
-    font-size: 13px;
 
     background:
         linear-gradient(
             145deg,
-            #f4f6f8,
-            #e9edf0
+            #a6a6a8,
+            #858587
         );
+
+    color: #050505;
+
+    font-size: 22px;
+
+    font-weight: 500;
 }
 
-/* ============================================================
+/* =========================================
    OPERATORS
-============================================================ */
+========================================= */
 
 button.operator {
 
-    font-size: 19px;
+    background:
+        linear-gradient(
+            145deg,
+            #ffb340,
+            #ff9500
+        );
 
-    color: #777780;
+    color: white;
+
+    font-size: 30px;
+
+    font-weight: 500;
+
+    box-shadow:
+        0 5px 14px
+        rgba(255,149,0,.22);
 }
 
-/* ============================================================
-   EQUAL BUTTON
-============================================================ */
+button.operator:hover {
 
-button.equals {
+    filter: brightness(1.12);
+}
+
+/* =========================================
+   ACTIVE OPERATOR
+========================================= */
+
+button.operator.active {
+
+    background: white;
+
+    color: #ff9500;
+}
+
+/* =========================================
+   ZERO
+========================================= */
+
+button.zero {
 
     grid-column: span 2;
 
@@ -354,87 +380,76 @@ button.equals {
 
     border-radius: 999px;
 
+    text-align: left;
+
+    padding-left: 30px;
+}
+
+/* =========================================
+   EQUAL
+========================================= */
+
+button.equals {
+
     background:
         linear-gradient(
             145deg,
-            #edbad6,
-            #e5a7c9
+            #ffb340,
+            #ff9500
         );
 
     color: white;
 
-    font-size: 21px;
+    font-size: 30px;
 
-    font-weight: 600;
-
-    box-shadow:
-
-        6px 7px 14px
-        rgba(190,128,162,.30),
-
-        -4px -4px 10px
-        rgba(255,255,255,.90);
+    font-weight: 500;
 }
 
-button.equals:hover {
-
-    filter: brightness(1.04);
-
-}
-
-button.equals:active {
-
-    box-shadow:
-
-        inset 4px 4px 8px
-        rgba(160,91,129,.22),
-
-        inset -4px -4px 8px
-        rgba(255,255,255,.35);
-}
-
-/* ============================================================
+/* =========================================
    FOOTER
-============================================================ */
+========================================= */
 
 .footer {
 
-    margin:
-        22px 0 0;
-
     text-align: center;
 
-    color: #b3a4b9;
+    margin-top: 20px;
 
-    font-size: 10px;
+    color: #444;
 
-    letter-spacing: 1.7px;
+    font-size: 9px;
+
+    letter-spacing: 3px;
+
+    font-weight: 600;
 }
 
-/* ============================================================
+/* =========================================
    MOBILE
-============================================================ */
+========================================= */
 
 @media (max-width: 390px) {
 
     body {
-        padding: 14px;
+        padding: 10px;
     }
 
     .calculator {
-
-        padding:
-            23px 18px 20px;
-
-        border-radius: 29px;
+        padding: 25px 15px 20px;
+        border-radius: 35px;
     }
 
     .keys {
-        gap: 12px 10px;
+        gap: 10px;
     }
 
     button {
-        font-size: 14px;
+        font-size: 24px;
+    }
+
+    button.operator,
+    button.equals {
+        font-size: 27px;
     }
 }
 
@@ -443,17 +458,20 @@ button.equals:active {
 
 <body>
 
-<main class="calculator" aria-label="Calculator">
+<div class="calculator">
 
-    <p class="brand">
-        Soft • Calculate
-    </p>
+    <div class="top">
 
-    <section
-        class="screen"
-        aria-live="polite"
-        aria-atomic="true"
-    >
+        <div class="logo">
+            CALCULATOR
+        </div>
+
+        <div class="dot"></div>
+
+    </div>
+
+
+    <div class="display">
 
         <div
             class="expression"
@@ -466,23 +484,21 @@ button.equals:active {
             0
         </div>
 
-    </section>
+    </div>
 
-    <section
-        class="keys"
-        aria-label="Calculator keys"
-    >
+
+    <div class="keys">
 
         <button
             class="utility"
             data-action="clear">
-            clr
+            AC
         </button>
 
         <button
             class="utility"
             data-action="delete">
-            DEL
+            ⌫
         </button>
 
         <button
@@ -494,7 +510,7 @@ button.equals:active {
         <button
             class="operator"
             data-value="/">
-            /
+            ÷
         </button>
 
 
@@ -531,9 +547,15 @@ button.equals:active {
         </button>
 
 
-        <button data-value=".">.</button>
+        <button
+            class="zero"
+            data-value="0">
+            0
+        </button>
 
-        <button data-value="0">0</button>
+        <button data-value=".">
+            .
+        </button>
 
         <button
             class="equals"
@@ -541,23 +563,24 @@ button.equals:active {
             =
         </button>
 
-    </section>
+    </div>
 
-    <p class="footer">
-        SIMPLE • SMOOTH • SMART
-    </p>
 
-</main>
+    <div class="footer">
+        SIMPLE • FAST • BEAUTIFUL
+    </div>
+
+</div>
 
 
 <script>
 
 (() => {
 
-    const resultEl =
+    const result =
         document.getElementById("result");
 
-    const expressionEl =
+    const expressionDisplay =
         document.getElementById("expression");
 
     let expression = "";
@@ -565,180 +588,172 @@ button.equals:active {
     let justEvaluated = false;
 
 
-    /* ========================================================
+    /* =========================================
        DISPLAY
-    ======================================================== */
+    ========================================= */
 
-    function render(value = expression || "0") {
+    function render(value) {
 
-        resultEl.textContent = value;
+        result.textContent =
+            value || expression || "0";
 
-        expressionEl.textContent =
+        if (
             expression &&
             !justEvaluated
-                ? expression
+        ) {
+
+            expressionDisplay.textContent =
+                expression
                     .replaceAll("*", "×")
                     .replaceAll("-", "−")
-                : "";
+                    .replaceAll("/", "÷");
 
+        } else {
+
+            expressionDisplay.textContent = "";
+        }
     }
 
 
-    /* ========================================================
+    /* =========================================
        SAFE CALCULATOR
-    ======================================================== */
+    ========================================= */
 
-    function safeCalculate(input) {
+    function calculateExpression(input) {
 
         input = input.trim();
 
         if (!input) {
-            throw new Error("Incomplete expression");
+            throw new Error("Empty");
         }
 
-        /*
-         * Only calculator characters.
-         */
-        if (!/^[0-9+\-*/().\s]+$/.test(input)) {
-            throw new Error("Invalid expression");
+        if (
+            !/^[0-9+\-*/().\s]+$/.test(input)
+        ) {
+            throw new Error("Invalid");
         }
 
-        /*
-         * Expression cannot end with operator.
-         */
         if (/[+\-*/.]$/.test(input)) {
-            throw new Error("Incomplete expression");
+            throw new Error("Incomplete");
         }
 
-        /*
-         * Tokenizer
-         */
+
         const tokens =
             input.match(
                 /(?:\d+(?:\.\d*)?|\.\d+|[()+\-*/])/g
             );
 
         if (!tokens) {
-            throw new Error("Invalid expression");
+            throw new Error("Invalid");
         }
+
 
         if (
             tokens.join("") !==
             input.replace(/\s/g, "")
         ) {
-            throw new Error("Invalid expression");
+            throw new Error("Invalid");
         }
 
 
         let pos = 0;
 
 
-        /* ----------------------------------------------------
-           Addition / subtraction
-        ---------------------------------------------------- */
+        function expressionParser() {
 
-        function parseExpression() {
-
-            let value = parseTerm();
+            let value =
+                termParser();
 
             while (
                 tokens[pos] === "+" ||
                 tokens[pos] === "-"
             ) {
 
-                const op = tokens[pos++];
+                const op =
+                    tokens[pos++];
 
-                const right = parseTerm();
+                const right =
+                    termParser();
 
-                if (op === "+") {
-                    value += right;
-                } else {
-                    value -= right;
-                }
+                value =
+                    op === "+"
+                        ? value + right
+                        : value - right;
             }
 
             return value;
         }
 
 
-        /* ----------------------------------------------------
-           Multiplication / division
-        ---------------------------------------------------- */
+        function termParser() {
 
-        function parseTerm() {
-
-            let value = parseUnary();
+            let value =
+                unaryParser();
 
             while (
                 tokens[pos] === "*" ||
                 tokens[pos] === "/"
             ) {
 
-                const op = tokens[pos++];
+                const op =
+                    tokens[pos++];
 
-                const right = parseUnary();
+                const right =
+                    unaryParser();
 
                 if (
                     op === "/" &&
                     right === 0
                 ) {
                     throw new Error(
-                        "Cannot divide by zero"
+                        "Divide by zero"
                     );
                 }
 
-                if (op === "*") {
-                    value *= right;
-                } else {
-                    value /= right;
-                }
+                value =
+                    op === "*"
+                        ? value * right
+                        : value / right;
             }
 
             return value;
         }
 
 
-        /* ----------------------------------------------------
-           Unary operators
-        ---------------------------------------------------- */
-
-        function parseUnary() {
+        function unaryParser() {
 
             if (tokens[pos] === "+") {
 
                 pos++;
 
-                return parseUnary();
+                return unaryParser();
             }
 
             if (tokens[pos] === "-") {
 
                 pos++;
 
-                return -parseUnary();
+                return -unaryParser();
             }
 
-            return parsePrimary();
+            return primaryParser();
         }
 
 
-        /* ----------------------------------------------------
-           Numbers + parentheses
-        ---------------------------------------------------- */
-
-        function parsePrimary() {
+        function primaryParser() {
 
             if (tokens[pos] === "(") {
 
                 pos++;
 
                 const value =
-                    parseExpression();
+                    expressionParser();
 
-                if (tokens[pos++] !== ")") {
-
+                if (
+                    tokens[pos++] !== ")"
+                ) {
                     throw new Error(
-                        "Missing bracket"
+                        "Bracket"
                     );
                 }
 
@@ -753,10 +768,7 @@ button.equals:active {
                 !token ||
                 !/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(token)
             ) {
-
-                throw new Error(
-                    "Invalid expression"
-                );
+                throw new Error("Invalid");
             }
 
             return Number(token);
@@ -764,30 +776,26 @@ button.equals:active {
 
 
         const answer =
-            parseExpression();
+            expressionParser();
 
 
         if (
             pos !== tokens.length ||
             !Number.isFinite(answer)
         ) {
-
-            throw new Error(
-                "Invalid result"
-            );
+            throw new Error("Invalid");
         }
 
 
         return Number(
             answer.toPrecision(12)
         ).toString();
-
     }
 
 
-    /* ========================================================
+    /* =========================================
        ADD VALUE
-    ======================================================== */
+    ========================================= */
 
     function addValue(value) {
 
@@ -795,21 +803,16 @@ button.equals:active {
             justEvaluated &&
             /[0-9.]/.test(value)
         ) {
+
             expression = "";
         }
 
         justEvaluated = false;
 
 
-        const last =
-            expression.slice(-1);
-
-
-        /*
-         * Operators
-         */
-
-        if ("+-*/".includes(value)) {
+        if (
+            "+-*/".includes(value)
+        ) {
 
             if (
                 !expression &&
@@ -817,6 +820,9 @@ button.equals:active {
             ) {
                 return;
             }
+
+            const last =
+                expression.slice(-1);
 
             if (
                 "+-*/".includes(last)
@@ -828,24 +834,20 @@ button.equals:active {
         }
 
 
-        /*
-         * Decimal
-         */
-
         if (value === ".") {
 
-            const currentNumber =
+            const current =
                 expression
                     .split(/[+\-*/]/)
                     .pop();
 
             if (
-                currentNumber.includes(".")
+                current.includes(".")
             ) {
                 return;
             }
 
-            if (!currentNumber) {
+            if (!current) {
                 expression += "0";
             }
         }
@@ -857,24 +859,27 @@ button.equals:active {
     }
 
 
-    /* ========================================================
-       CALCULATE
-    ======================================================== */
+    /* =========================================
+       EQUAL
+    ========================================= */
 
     function calculate() {
 
         try {
 
             const answer =
-                safeCalculate(expression);
+                calculateExpression(
+                    expression
+                );
 
-            expressionEl.textContent =
+            expressionDisplay.textContent =
                 expression
                     .replaceAll("*", "×")
+                    .replaceAll("/", "÷")
                     .replaceAll("-", "−")
                 + " =";
 
-            resultEl.textContent =
+            result.textContent =
                 answer;
 
             expression = answer;
@@ -883,50 +888,36 @@ button.equals:active {
 
         } catch (error) {
 
-            if (
+            result.textContent =
                 error.message ===
-                "Cannot divide by zero"
-            ) {
-
-                resultEl.textContent =
-                    "Cannot divide by 0";
-
-            } else {
-
-                resultEl.textContent =
-                    "Error";
-            }
+                "Divide by zero"
+                    ? "Error"
+                    : "Error";
 
             justEvaluated = true;
         }
     }
 
 
-    /* ========================================================
+    /* =========================================
        ACTIONS
-    ======================================================== */
+    ========================================= */
 
-    function handleAction(action) {
+    function action(type) {
 
-        /*
-         * CLEAR
-         */
-
-        if (action === "clear") {
+        if (type === "clear") {
 
             expression = "";
 
             justEvaluated = false;
 
             render("0");
+
+            return;
         }
 
 
-        /*
-         * DELETE
-         */
-
-        else if (action === "delete") {
+        if (type === "delete") {
 
             if (justEvaluated) {
 
@@ -941,24 +932,20 @@ button.equals:active {
             }
 
             render();
+
+            return;
         }
 
 
-        /*
-         * EQUALS
-         */
-
-        else if (action === "equals") {
+        if (type === "equals") {
 
             calculate();
+
+            return;
         }
 
 
-        /*
-         * PERCENT
-         */
-
-        else if (action === "percent") {
+        if (type === "percent") {
 
             if (!expression) {
                 return;
@@ -966,28 +953,32 @@ button.equals:active {
 
             try {
 
+                const value =
+                    calculateExpression(
+                        expression
+                    );
+
                 expression =
                     (
-                        safeCalculate(expression)
-                        / 100
+                        Number(value) / 100
                     ).toString();
 
                 justEvaluated = false;
 
                 render();
 
-            } catch (error) {
+            } catch {
 
-                resultEl.textContent =
+                result.textContent =
                     "Error";
             }
         }
     }
 
 
-    /* ========================================================
-       MOUSE / TOUCH
-    ======================================================== */
+    /* =========================================
+       BUTTON CLICK
+    ========================================= */
 
     document
         .querySelector(".keys")
@@ -1005,9 +996,11 @@ button.equals:active {
                 }
 
 
-                if (button.dataset.action) {
+                if (
+                    button.dataset.action
+                ) {
 
-                    handleAction(
+                    action(
                         button.dataset.action
                     );
 
@@ -1017,34 +1010,29 @@ button.equals:active {
                         button.dataset.value
                     );
                 }
-
             }
         );
 
 
-    /* ========================================================
-       KEYBOARD SUPPORT
-    ======================================================== */
+    /* =========================================
+       KEYBOARD
+    ========================================= */
 
     document.addEventListener(
         "keydown",
         event => {
 
-            /*
-             * Numbers
-             */
-
-            if (/^[0-9.]$/.test(event.key)) {
+            if (
+                /^[0-9.]$/.test(
+                    event.key
+                )
+            ) {
 
                 addValue(event.key);
 
                 return;
             }
 
-
-            /*
-             * Operators
-             */
 
             if (
                 ["+", "-", "*", "/"]
@@ -1056,10 +1044,6 @@ button.equals:active {
                 return;
             }
 
-
-            /*
-             * Enter / =
-             */
 
             if (
                 event.key === "Enter" ||
@@ -1074,43 +1058,30 @@ button.equals:active {
             }
 
 
-            /*
-             * Backspace
-             */
-
             if (
                 event.key === "Backspace"
             ) {
 
-                handleAction("delete");
+                action("delete");
 
                 return;
             }
 
-
-            /*
-             * Escape / Delete
-             */
 
             if (
                 event.key === "Escape" ||
                 event.key === "Delete"
             ) {
 
-                handleAction("clear");
+                action("clear");
 
                 return;
             }
 
 
-            /*
-             * Percentage
-             */
-
             if (event.key === "%") {
 
-                handleAction("percent");
-
+                action("percent");
             }
 
         }
@@ -1124,12 +1095,8 @@ button.equals:active {
 </html>
 """
 
-# ============================================================
-# STREAMLIT APP
-# ============================================================
-
 components.html(
     HTML_PAGE,
-    height=700,
-    scrolling=False,
+    height=730,
+    scrolling=False
 )
