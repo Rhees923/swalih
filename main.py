@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import ast
 import operator
 import re
@@ -8,7 +9,7 @@ import re
 # ============================================================
 
 st.set_page_config(
-    page_title="NOVA CALC",
+    page_title="NEXA CALC",
     page_icon="🧮",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -29,7 +30,7 @@ if "history" not in st.session_state:
 
 
 # ============================================================
-# SAFE CALCULATOR ENGINE
+# SAFE MATH ENGINE
 # ============================================================
 
 OPERATORS = {
@@ -43,12 +44,12 @@ OPERATORS = {
 }
 
 
-def calculate(expression):
+def safe_calculate(expression):
 
     if not expression:
         return "0"
 
-    # Percentage
+    # Convert percentage
     expression = re.sub(
         r"(\d+(?:\.\d+)?)%",
         r"(\1/100)",
@@ -57,43 +58,76 @@ def calculate(expression):
 
     try:
 
-        tree = ast.parse(expression, mode="eval")
+        tree = ast.parse(
+            expression,
+            mode="eval"
+        )
 
         def evaluate(node):
 
-            if isinstance(node, ast.Expression):
+            if isinstance(
+                node,
+                ast.Expression
+            ):
                 return evaluate(node.body)
 
-            if isinstance(node, ast.Constant):
+            if isinstance(
+                node,
+                ast.Constant
+            ):
 
-                if isinstance(node.value, (int, float)):
+                if isinstance(
+                    node.value,
+                    (int, float)
+                ):
                     return node.value
 
                 raise ValueError()
 
-            if isinstance(node, ast.BinOp):
+            if isinstance(
+                node,
+                ast.BinOp
+            ):
 
                 left = evaluate(node.left)
                 right = evaluate(node.right)
 
-                operation = OPERATORS.get(type(node.op))
+                operation = OPERATORS.get(
+                    type(node.op)
+                )
 
                 if operation is None:
                     raise ValueError()
 
-                if isinstance(node.op, ast.Div) and right == 0:
+                if (
+                    isinstance(
+                        node.op,
+                        ast.Div
+                    )
+                    and right == 0
+                ):
                     raise ZeroDivisionError()
 
-                return operation(left, right)
+                return operation(
+                    left,
+                    right
+                )
 
-            if isinstance(node, ast.UnaryOp):
+            if isinstance(
+                node,
+                ast.UnaryOp
+            ):
 
-                operation = OPERATORS.get(type(node.op))
+                operation = OPERATORS.get(
+                    type(node.op)
+                )
 
                 if operation is None:
                     raise ValueError()
 
-                return operation(evaluate(node.operand))
+                return operation(
+                    evaluate(node.operand)
+                )
 
             raise ValueError()
 
@@ -104,29 +138,38 @@ def calculate(expression):
             if result.is_integer():
                 return str(int(result))
 
-            return f"{result:.10f}".rstrip("0").rstrip(".")
+            return (
+                f"{result:.10f}"
+                .rstrip("0")
+                .rstrip(".")
+            )
 
         return str(result)
 
     except ZeroDivisionError:
-        return "Error"
+
+        return "Cannot divide by 0"
 
     except:
+
         return "Error"
 
 
 # ============================================================
-# INPUT HANDLER
+# CALCULATOR ACTION
 # ============================================================
 
-def press(value):
+def calculate_action(value):
 
+    # CLEAR
     if value == "AC":
 
         st.session_state.expression = ""
         st.session_state.display = "0"
+
         return
 
+    # DELETE
     if value == "DEL":
 
         st.session_state.expression = (
@@ -134,21 +177,31 @@ def press(value):
         )
 
         st.session_state.display = (
-            st.session_state.expression or "0"
+            st.session_state.expression
+            if st.session_state.expression
+            else "0"
         )
 
         return
 
+    # EQUAL
     if value == "=":
 
-        expression = st.session_state.expression
+        expression = (
+            st.session_state.expression
+        )
 
         if not expression:
             return
 
-        result = calculate(expression)
+        result = safe_calculate(
+            expression
+        )
 
-        if result != "Error":
+        if result not in [
+            "Error",
+            "Cannot divide by 0"
+        ]:
 
             st.session_state.history.insert(
                 0,
@@ -159,27 +212,33 @@ def press(value):
                 st.session_state.history[:5]
             )
 
-            st.session_state.display = result
             st.session_state.expression = result
+            st.session_state.display = result
 
         else:
 
-            st.session_state.display = "Error"
+            st.session_state.display = result
 
         return
 
+    # SYMBOLS
     symbols = {
-        "÷": "/",
         "×": "*",
+        "÷": "/",
         "−": "-"
     }
 
-    actual = symbols.get(value, value)
+    actual = symbols.get(
+        value,
+        value
+    )
 
-    # Decimal protection
+    # DECIMAL
     if value == ".":
 
-        current = st.session_state.expression
+        current = (
+            st.session_state.expression
+        )
 
         last_number = re.split(
             r"[+\-*/%]",
@@ -189,10 +248,17 @@ def press(value):
         if "." in last_number:
             return
 
-    # Operator protection
-    if value in ["+", "−", "×", "÷"]:
+    # OPERATORS
+    if value in [
+        "+",
+        "−",
+        "×",
+        "÷"
+    ]:
 
-        expression = st.session_state.expression
+        expression = (
+            st.session_state.expression
+        )
 
         if not expression:
 
@@ -223,44 +289,47 @@ def press(value):
 
 
 # ============================================================
-# CSS
+# PREMIUM CSS
 # ============================================================
 
-st.markdown("""
+st.markdown(
+"""
 <style>
 
 @import url(
 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
 );
 
-/* ==========================================================
-   BODY
-========================================================== */
+/* ========================================================
+   BACKGROUND
+======================================================== */
 
 .stApp {
 
     background:
         radial-gradient(
-            circle at 10% 10%,
-            rgba(124,58,237,.20),
+            circle at 15% 15%,
+            rgba(99,102,241,.18),
             transparent 30%
         ),
 
         radial-gradient(
-            circle at 90% 90%,
-            rgba(59,130,246,.15),
+            circle at 85% 85%,
+            rgba(14,165,233,.13),
             transparent 30%
         ),
 
-        #080B14;
+        #070B14;
 
-    font-family: 'Inter', sans-serif;
+    font-family:
+        'Inter',
+        sans-serif;
 
 }
 
-/* ==========================================================
-   HIDE STREAMLIT UI
-========================================================== */
+/* ========================================================
+   REMOVE STREAMLIT UI
+======================================================== */
 
 #MainMenu {
     visibility: hidden;
@@ -276,437 +345,514 @@ footer {
 
 .block-container {
 
-    max-width: 430px !important;
+    max-width: 440px !important;
 
-    padding-top: 35px !important;
+    padding-top: 30px !important;
 
     padding-bottom: 30px !important;
 }
 
-/* ==========================================================
-   CALCULATOR
-========================================================== */
+/* ========================================================
+   MAIN CARD
+======================================================== */
 
 .calculator {
 
-    padding: 24px;
-
-    border-radius: 28px;
-
     background:
-        rgba(18, 24, 39, .88);
+        rgba(17,24,39,.92);
 
     border:
-        1px solid rgba(255,255,255,.08);
+        1px solid rgba(255,255,255,.07);
+
+    border-radius:
+        24px;
+
+    padding:
+        24px;
 
     box-shadow:
+        0 30px 80px rgba(0,0,0,.55);
 
-        0 30px 80px
-        rgba(0,0,0,.55),
+    animation:
+        cardEnter .55s ease;
 
-        inset 0 1px 1px
-        rgba(255,255,255,.04);
-
-    backdrop-filter: blur(20px);
-
-    animation: calculatorIn .6s ease;
 }
 
-@keyframes calculatorIn {
+@keyframes cardEnter {
 
     from {
+
         opacity: 0;
-        transform: translateY(25px) scale(.97);
+
+        transform:
+            translateY(25px);
+
     }
 
     to {
+
         opacity: 1;
-        transform: translateY(0) scale(1);
+
+        transform:
+            translateY(0);
+
     }
+
 }
 
-/* ==========================================================
+/* ========================================================
    HEADER
-========================================================== */
+======================================================== */
 
-.brand {
+.header {
 
-    display: flex;
+    display:
+        flex;
 
-    align-items: center;
+    align-items:
+        center;
 
-    justify-content: space-between;
+    justify-content:
+        space-between;
 
-    margin-bottom: 20px;
+    margin-bottom:
+        18px;
+
 }
 
-.brand-name {
+.logo {
 
-    color: #ffffff;
+    font-size:
+        20px;
 
-    font-size: 18px;
+    font-weight:
+        800;
 
-    font-weight: 800;
+    color:
+        white;
 
-    letter-spacing: 1px;
+    letter-spacing:
+        .5px;
+
 }
 
-.brand-name span {
+.logo span {
 
-    color: #8b5cf6;
+    color:
+        #6366F1;
+
 }
 
-.status {
+.online {
 
-    display: flex;
+    font-size:
+        10px;
 
-    align-items: center;
+    color:
+        #64748B;
 
-    gap: 6px;
+    display:
+        flex;
 
-    color: #94a3b8;
+    align-items:
+        center;
 
-    font-size: 11px;
+    gap:
+        6px;
+
 }
 
-.status-dot {
+.dot {
 
-    width: 7px;
+    width:
+        7px;
 
-    height: 7px;
+    height:
+        7px;
 
-    border-radius: 50%;
+    background:
+        #22C55E;
 
-    background: #22c55e;
+    border-radius:
+        50%;
 
     box-shadow:
-        0 0 10px #22c55e;
+        0 0 10px #22C55E;
 
 }
 
-/* ==========================================================
+/* ========================================================
    DISPLAY
-========================================================== */
+======================================================== */
 
 .display {
 
-    min-height: 125px;
+    height:
+        120px;
 
-    padding: 22px;
+    padding:
+        18px 20px;
 
-    border-radius: 22px;
+    border-radius:
+        18px;
 
     background:
-        linear-gradient(
-            145deg,
-            #111827,
-            #0b1120
-        );
+        #0B1120;
 
     border:
         1px solid rgba(255,255,255,.06);
 
     box-shadow:
-        inset 0 5px 20px rgba(0,0,0,.25);
+        inset 0 3px 15px rgba(0,0,0,.30);
 
-    display: flex;
+    display:
+        flex;
 
-    flex-direction: column;
+    flex-direction:
+        column;
 
-    justify-content: flex-end;
+    justify-content:
+        flex-end;
 
-    align-items: flex-end;
+    align-items:
+        flex-end;
 
-    overflow: hidden;
+    overflow:
+        hidden;
 
-    margin-bottom: 20px;
+    margin-bottom:
+        18px;
+
 }
 
 .expression {
 
-    width: 100%;
+    color:
+        #64748B;
 
-    text-align: right;
+    font-size:
+        13px;
 
-    color: #64748b;
+    width:
+        100%;
 
-    font-size: 14px;
+    text-align:
+        right;
 
-    min-height: 22px;
+    overflow:
+        hidden;
 
-    overflow: hidden;
+    text-overflow:
+        ellipsis;
 
-    text-overflow: ellipsis;
 }
 
 .result {
 
-    max-width: 100%;
+    color:
+        #F8FAFC;
 
-    color: #f8fafc;
+    font-size:
+        40px;
 
-    font-size: 42px;
+    font-weight:
+        500;
 
-    font-weight: 500;
+    width:
+        100%;
 
-    letter-spacing: -1px;
+    text-align:
+        right;
 
-    overflow: hidden;
+    overflow:
+        hidden;
 
-    text-overflow: ellipsis;
+    text-overflow:
+        ellipsis;
 
-    animation: resultIn .18s ease;
+    animation:
+        numberIn .18s ease;
+
 }
 
-@keyframes resultIn {
+@keyframes numberIn {
 
     from {
-        opacity: .3;
-        transform: translateY(5px);
+
+        opacity:
+            .4;
+
+        transform:
+            translateY(4px);
+
     }
 
     to {
-        opacity: 1;
-        transform: translateY(0);
+
+        opacity:
+            1;
+
+        transform:
+            translateY(0);
+
     }
+
 }
 
-/* ==========================================================
+/* ========================================================
    BUTTONS
-========================================================== */
+======================================================== */
 
 div.stButton > button {
 
-    width: 100%;
+    width:
+        100% !important;
 
-    height: 58px;
+    height:
+        58px !important;
 
-    border-radius: 17px;
-
-    border:
-        1px solid rgba(255,255,255,.06);
+    border-radius:
+        15px !important;
 
     background:
-        #1a2233;
+        #182235 !important;
 
-    color: #e2e8f0;
+    color:
+        #E2E8F0 !important;
 
-    font-family: 'Inter', sans-serif;
+    border:
+        1px solid rgba(255,255,255,.05) !important;
 
-    font-size: 17px;
+    font-family:
+        'Inter',
+        sans-serif !important;
 
-    font-weight: 600;
+    font-size:
+        17px !important;
+
+    font-weight:
+        600 !important;
 
     box-shadow:
-        0 5px 12px rgba(0,0,0,.22);
+        0 5px 12px rgba(0,0,0,.20) !important;
 
     transition:
-        transform .12s ease,
-        background .12s ease,
-        box-shadow .12s ease;
+        all .15s ease !important;
 
 }
 
-/* Hover */
+/* ========================================================
+   HOVER
+======================================================== */
 
 @media (hover:hover) {
 
     div.stButton > button:hover {
 
-        color: #ffffff;
+        background:
+            #22304A !important;
 
-        background: #243047;
+        color:
+            white !important;
 
-        transform: translateY(-2px);
+        transform:
+            translateY(-2px) !important;
 
         box-shadow:
-            0 9px 20px rgba(0,0,0,.28);
+            0 9px 22px rgba(0,0,0,.30) !important;
 
     }
 
 }
 
-/* Press */
+/* ========================================================
+   PRESS
+======================================================== */
 
 div.stButton > button:active {
 
-    transform: scale(.94);
-
-    box-shadow:
-        0 2px 5px rgba(0,0,0,.25);
+    transform:
+        scale(.94) !important;
 
 }
 
-/* ==========================================================
-   OPERATOR BUTTONS
-========================================================== */
+/* ========================================================
+   SPECIAL
+======================================================== */
 
-.operator div.stButton > button {
+.special div.stButton > button {
 
     background:
-        #25203b;
+        #211D38 !important;
 
     color:
-        #a78bfa;
-
-    border-color:
-        rgba(139,92,246,.15);
-}
-
-.operator div.stButton > button:hover {
-
-    background:
-        #30294b;
+        #A78BFA !important;
 
 }
-
-/* ==========================================================
-   CLEAR
-========================================================== */
 
 .clear div.stButton > button {
 
     background:
-        #321d2b;
+        #321E29 !important;
 
     color:
-        #fb7185;
+        #FB7185 !important;
 
 }
 
-/* ==========================================================
+/* ========================================================
    EQUAL
-========================================================== */
+======================================================== */
 
-.equals div.stButton > button {
+.equal div.stButton > button {
 
     background:
         linear-gradient(
             135deg,
-            #8b5cf6,
-            #6366f1
-        );
+            #6366F1,
+            #4F46E5
+        ) !important;
 
-    color: white;
-
-    border-color:
-        rgba(167,139,250,.25);
+    color:
+        white !important;
 
     box-shadow:
         0 8px 20px
-        rgba(99,102,241,.28);
+        rgba(79,70,229,.30) !important;
+
 }
 
-.equals div.stButton > button:hover {
+.equal div.stButton > button:hover {
 
     background:
         linear-gradient(
             135deg,
-            #9b6cff,
-            #7476ff
-        );
+            #7477FF,
+            #5B55F0
+        ) !important;
 
 }
 
-/* ==========================================================
-   BUTTON GAP
-========================================================== */
+/* ========================================================
+   SPACING
+======================================================== */
 
 div[data-testid="stHorizontalBlock"] {
 
-    gap: 9px !important;
+    gap:
+        9px !important;
 
-    margin-bottom: 9px !important;
+    margin-bottom:
+        9px !important;
+
 }
 
-/* ==========================================================
+/* ========================================================
    HISTORY
-========================================================== */
+======================================================== */
 
 .history-title {
 
-    color: #94a3b8;
+    color:
+        #64748B;
 
-    font-size: 11px;
+    font-size:
+        10px;
 
-    font-weight: 700;
+    font-weight:
+        700;
 
-    letter-spacing: 1.5px;
+    letter-spacing:
+        1.5px;
 
-    margin-top: 18px;
+    margin-top:
+        18px;
 
-    margin-bottom: 8px;
 }
 
 .history-item {
 
-    color: #64748b;
+    color:
+        #94A3B8;
 
-    font-size: 12px;
+    font-size:
+        11px;
 
-    padding: 6px 0;
+    padding:
+        6px 0;
 
     border-bottom:
         1px solid rgba(255,255,255,.04);
 
-    text-align: right;
+    text-align:
+        right;
+
 }
 
-/* ==========================================================
+/* ========================================================
    KEYBOARD
-========================================================== */
+======================================================== */
 
 .keyboard {
 
-    text-align: center;
+    text-align:
+        center;
 
-    color: #475569;
+    color:
+        #475569;
 
-    font-size: 10px;
+    font-size:
+        10px;
 
-    margin-top: 16px;
+    margin-top:
+        15px;
 
-    letter-spacing: .5px;
 }
 
-/* ==========================================================
+/* ========================================================
    MOBILE
-========================================================== */
+======================================================== */
 
-@media (max-width: 500px) {
+@media (max-width:500px) {
 
     .block-container {
 
         padding:
             15px 10px !important;
+
     }
 
     .calculator {
 
-        padding: 18px;
+        padding:
+            18px;
 
-        border-radius: 24px;
-    }
-
-    .result {
-
-        font-size: 34px;
     }
 
     div.stButton > button {
 
-        height: 54px;
+        height:
+            53px !important;
 
-        font-size: 16px;
     }
+
+    .result {
+
+        font-size:
+            34px;
+
+    }
+
 }
 
 </style>
-""", unsafe_allow_html=True)
+""",
+unsafe_allow_html=True
+)
 
 
 # ============================================================
-# CALCULATOR START
+# CALCULATOR UI
 # ============================================================
 
 st.markdown(
@@ -714,52 +860,44 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
-# ============================================================
 # HEADER
-# ============================================================
 
-st.markdown("""
-<div class="brand">
+st.markdown(
+"""
+<div class="header">
 
-    <div class="brand-name">
-        NOVA<span>CALC</span>
+    <div class="logo">
+        NEXA<span>CALC</span>
     </div>
 
-    <div class="status">
-        <div class="status-dot"></div>
+    <div class="online">
+        <div class="dot"></div>
         READY
     </div>
 
 </div>
-""", unsafe_allow_html=True)
-
-
-# ============================================================
-# DISPLAY
-# ============================================================
-
-expression_display = (
-    st.session_state.expression
-    if st.session_state.expression
-    else "Ready"
+""",
+unsafe_allow_html=True
 )
 
+
+# DISPLAY
+
 st.markdown(
-    f"""
-    <div class="display">
+f"""
+<div class="display">
 
-        <div class="expression">
-            {expression_display}
-        </div>
-
-        <div class="result">
-            {st.session_state.display}
-        </div>
-
+    <div class="expression">
+        {st.session_state.expression or "Ready"}
     </div>
-    """,
-    unsafe_allow_html=True
+
+    <div class="result">
+        {st.session_state.display}
+    </div>
+
+</div>
+""",
+unsafe_allow_html=True
 )
 
 
@@ -769,9 +907,10 @@ st.markdown(
 
 cols = st.columns(4)
 
-buttons = ["AC", "DEL", "%", "÷"]
-
-for col, value in zip(cols, buttons):
+for col, value in zip(
+    cols,
+    ["AC", "DEL", "%", "÷"]
+):
 
     with col:
 
@@ -785,123 +924,89 @@ for col, value in zip(cols, buttons):
         else:
 
             st.markdown(
-                '<div class="operator">',
+                '<div class="special">',
                 unsafe_allow_html=True
             )
 
         if st.button(
             value,
-            key=f"btn_{value}"
+            key=f"r1_{value}"
         ):
 
-            press(value)
+            calculate_action(value)
             st.rerun()
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(
+            "</div>",
+            unsafe_allow_html=True
+        )
 
 
 # ============================================================
-# ROW 2
+# NUMBER ROWS
+# ============================================================
+
+rows = [
+    ["7", "8", "9", "×"],
+    ["4", "5", "6", "−"],
+    ["1", "2", "3", "+"],
+]
+
+for row_number, row in enumerate(rows):
+
+    cols = st.columns(4)
+
+    for col, value in zip(cols, row):
+
+        with col:
+
+            if value in [
+                "×",
+                "−",
+                "+"
+            ]:
+
+                st.markdown(
+                    '<div class="special">',
+                    unsafe_allow_html=True
+                )
+
+            if st.button(
+                value,
+                key=f"row{row_number}_{value}"
+            ):
+
+                calculate_action(value)
+                st.rerun()
+
+            if value in [
+                "×",
+                "−",
+                "+"
+            ]:
+
+                st.markdown(
+                    "</div>",
+                    unsafe_allow_html=True
+                )
+
+
+# ============================================================
+# LAST ROW
 # ============================================================
 
 cols = st.columns(4)
 
-for col, value in zip(
-    cols,
-    ["7", "8", "9", "×"]
-):
-
-    with col:
-
-        if value == "×":
-            st.markdown(
-                '<div class="operator">',
-                unsafe_allow_html=True
-            )
-
-        if st.button(
-            value,
-            key=f"btn2_{value}"
-        ):
-
-            press(value)
-            st.rerun()
-
-        if value == "×":
-            st.markdown("</div>", unsafe_allow_html=True)
-
-
-# ============================================================
-# ROW 3
-# ============================================================
-
-cols = st.columns(4)
+last_buttons = [
+    ".",
+    "0",
+    "⌫",
+    "="
+]
 
 for col, value in zip(
     cols,
-    ["4", "5", "6", "−"]
-):
-
-    with col:
-
-        if value == "−":
-            st.markdown(
-                '<div class="operator">',
-                unsafe_allow_html=True
-            )
-
-        if st.button(
-            value,
-            key=f"btn3_{value}"
-        ):
-
-            press(value)
-            st.rerun()
-
-        if value == "−":
-            st.markdown("</div>", unsafe_allow_html=True)
-
-
-# ============================================================
-# ROW 4
-# ============================================================
-
-cols = st.columns(4)
-
-for col, value in zip(
-    cols,
-    ["1", "2", "3", "+"]
-):
-
-    with col:
-
-        if value == "+":
-            st.markdown(
-                '<div class="operator">',
-                unsafe_allow_html=True
-            )
-
-        if st.button(
-            value,
-            key=f"btn4_{value}"
-        ):
-
-            press(value)
-            st.rerun()
-
-        if value == "+":
-            st.markdown("</div>", unsafe_allow_html=True)
-
-
-# ============================================================
-# ROW 5
-# ============================================================
-
-cols = st.columns(4)
-
-for col, value in zip(
-    cols,
-    [".", "0", "⌫", "="]
+    last_buttons
 ):
 
     with col:
@@ -909,20 +1014,22 @@ for col, value in zip(
         if value == "=":
 
             st.markdown(
-                '<div class="equals">',
+                '<div class="equal">',
                 unsafe_allow_html=True
             )
 
         if st.button(
             value,
-            key=f"btn5_{value}"
+            key=f"last_{value}"
         ):
 
-            press(
-                "DEL"
-                if value == "⌫"
-                else value
-            )
+            if value == "⌫":
+
+                calculate_action("DEL")
+
+            else:
+
+                calculate_action(value)
 
             st.rerun()
 
@@ -941,7 +1048,7 @@ for col, value in zip(
 if st.session_state.history:
 
     st.markdown(
-        '<div class="history-title">RECENT</div>',
+        '<div class="history-title">RECENT CALCULATIONS</div>',
         unsafe_allow_html=True
     )
 
@@ -953,23 +1060,16 @@ if st.session_state.history:
         )
 
 
-# ============================================================
-# KEYBOARD INFO
-# ============================================================
-
 st.markdown(
-    """
-    <div class="keyboard">
-        KEYBOARD: 0–9 &nbsp; + − * / &nbsp; ENTER &nbsp; BACKSPACE &nbsp; ESC
-    </div>
-    """,
-    unsafe_allow_html=True
+"""
+<div class="keyboard">
+    ⌨ 0–9 &nbsp; + − * / &nbsp; ENTER = &nbsp;
+    BACKSPACE = DEL &nbsp; ESC = AC
+</div>
+""",
+unsafe_allow_html=True
 )
 
-
-# ============================================================
-# CLOSE CALCULATOR
-# ============================================================
 
 st.markdown(
     "</div>",
@@ -978,87 +1078,111 @@ st.markdown(
 
 
 # ============================================================
-# KEYBOARD JAVASCRIPT
+# KEYBOARD SUPPORT
 # ============================================================
 
-st.components.v1.html(
-    """
-    <script>
+components.html(
+"""
+<script>
 
-    document.addEventListener("keydown", function(event) {
+(function () {
 
-        const key = event.key;
+    const parent = window.parent.document;
 
-        let buttonText = null;
+    if (parent.__nexaKeyboard) {
+        return;
+    }
 
-        if (/^[0-9]$/.test(key)) {
-            buttonText = key;
-        }
+    parent.__nexaKeyboard = true;
 
-        else if (key === "+") {
-            buttonText = "+";
-        }
+    parent.addEventListener(
+        "keydown",
+        function(event) {
 
-        else if (key === "-") {
-            buttonText = "−";
-        }
+            let value = null;
 
-        else if (key === "*") {
-            buttonText = "×";
-        }
+            const key = event.key;
 
-        else if (key === "/") {
-            buttonText = "÷";
-        }
+            // NUMBERS
+            if (/^[0-9]$/.test(key)) {
+                value = key;
+            }
 
-        else if (key === ".") {
-            buttonText = ".";
-        }
+            // OPERATORS
+            else if (key === "+") {
+                value = "+";
+            }
 
-        else if (key === "%") {
-            buttonText = "%";
-        }
+            else if (key === "-") {
+                value = "−";
+            }
 
-        else if (key === "Enter" || key === "=") {
-            buttonText = "=";
-        }
+            else if (key === "*") {
+                value = "×";
+            }
 
-        else if (key === "Backspace") {
-            buttonText = "⌫";
-        }
+            else if (key === "/") {
+                value = "÷";
+            }
 
-        else if (key === "Escape") {
-            buttonText = "AC";
-        }
+            else if (key === "%") {
+                value = "%";
+            }
 
-        if (buttonText !== null) {
+            else if (key === ".") {
+                value = ".";
+            }
+
+            // ENTER
+            else if (
+                key === "Enter" ||
+                key === "="
+            ) {
+                value = "=";
+            }
+
+            // DELETE
+            else if (key === "Backspace") {
+                value = "⌫";
+            }
+
+            // CLEAR
+            else if (key === "Escape") {
+                value = "AC";
+            }
+
+            if (!value) {
+                return;
+            }
 
             event.preventDefault();
 
             const buttons =
-                window.parent.document.querySelectorAll(
-                    'button'
+                parent.querySelectorAll(
+                    "button"
                 );
 
             for (const button of buttons) {
 
                 if (
                     button.innerText.trim()
-                    === buttonText
+                    === value
                 ) {
 
                     button.click();
-                    break;
 
+                    break;
                 }
 
             }
 
         }
 
-    });
+    );
 
-    </script>
-    """,
-    height=0
+})();
+
+</script>
+""",
+height=0
 )
