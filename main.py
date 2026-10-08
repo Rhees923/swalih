@@ -1,1188 +1,1135 @@
 import streamlit as st
 import streamlit.components.v1 as components
-import ast
-import operator
-import re
 
 # ============================================================
 # PAGE CONFIG
 # ============================================================
 
 st.set_page_config(
-    page_title="NEXA CALC",
+    page_title="Pastel Calculator",
     page_icon="🧮",
     layout="centered",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
 )
 
 # ============================================================
-# SESSION STATE
+# HTML + CSS + JAVASCRIPT
 # ============================================================
 
-if "expression" not in st.session_state:
-    st.session_state.expression = ""
+HTML_PAGE = r"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Pastel Calculator</title>
 
-if "display" not in st.session_state:
-    st.session_state.display = "0"
-
-if "history" not in st.session_state:
-    st.session_state.history = []
-
-
-# ============================================================
-# SAFE MATH ENGINE
-# ============================================================
-
-OPERATORS = {
-    ast.Add: operator.add,
-    ast.Sub: operator.sub,
-    ast.Mult: operator.mul,
-    ast.Div: operator.truediv,
-    ast.Mod: operator.mod,
-    ast.USub: operator.neg,
-    ast.UAdd: operator.pos,
-}
-
-
-def safe_calculate(expression):
-
-    if not expression:
-        return "0"
-
-    # Convert percentage
-    expression = re.sub(
-        r"(\d+(?:\.\d+)?)%",
-        r"(\1/100)",
-        expression
-    )
-
-    try:
-
-        tree = ast.parse(
-            expression,
-            mode="eval"
-        )
-
-        def evaluate(node):
-
-            if isinstance(
-                node,
-                ast.Expression
-            ):
-                return evaluate(node.body)
-
-            if isinstance(
-                node,
-                ast.Constant
-            ):
-
-                if isinstance(
-                    node.value,
-                    (int, float)
-                ):
-                    return node.value
-
-                raise ValueError()
-
-            if isinstance(
-                node,
-                ast.BinOp
-            ):
-
-                left = evaluate(node.left)
-                right = evaluate(node.right)
-
-                operation = OPERATORS.get(
-                    type(node.op)
-                )
-
-                if operation is None:
-                    raise ValueError()
-
-                if (
-                    isinstance(
-                        node.op,
-                        ast.Div
-                    )
-                    and right == 0
-                ):
-                    raise ZeroDivisionError()
-
-                return operation(
-                    left,
-                    right
-                )
-
-            if isinstance(
-                node,
-                ast.UnaryOp
-            ):
-
-                operation = OPERATORS.get(
-                    type(node.op)
-                )
-
-                if operation is None:
-                    raise ValueError()
-
-                return operation(
-                    evaluate(node.operand)
-                )
-
-            raise ValueError()
-
-        result = evaluate(tree)
-
-        if isinstance(result, float):
-
-            if result.is_integer():
-                return str(int(result))
-
-            return (
-                f"{result:.10f}"
-                .rstrip("0")
-                .rstrip(".")
-            )
-
-        return str(result)
-
-    except ZeroDivisionError:
-
-        return "Cannot divide by 0"
-
-    except:
-
-        return "Error"
-
-
-# ============================================================
-# CALCULATOR ACTION
-# ============================================================
-
-def calculate_action(value):
-
-    # CLEAR
-    if value == "AC":
-
-        st.session_state.expression = ""
-        st.session_state.display = "0"
-
-        return
-
-    # DELETE
-    if value == "DEL":
-
-        st.session_state.expression = (
-            st.session_state.expression[:-1]
-        )
-
-        st.session_state.display = (
-            st.session_state.expression
-            if st.session_state.expression
-            else "0"
-        )
-
-        return
-
-    # EQUAL
-    if value == "=":
-
-        expression = (
-            st.session_state.expression
-        )
-
-        if not expression:
-            return
-
-        result = safe_calculate(
-            expression
-        )
-
-        if result not in [
-            "Error",
-            "Cannot divide by 0"
-        ]:
-
-            st.session_state.history.insert(
-                0,
-                f"{expression} = {result}"
-            )
-
-            st.session_state.history = (
-                st.session_state.history[:5]
-            )
-
-            st.session_state.expression = result
-            st.session_state.display = result
-
-        else:
-
-            st.session_state.display = result
-
-        return
-
-    # SYMBOLS
-    symbols = {
-        "×": "*",
-        "÷": "/",
-        "−": "-"
-    }
-
-    actual = symbols.get(
-        value,
-        value
-    )
-
-    # DECIMAL
-    if value == ".":
-
-        current = (
-            st.session_state.expression
-        )
-
-        last_number = re.split(
-            r"[+\-*/%]",
-            current
-        )[-1]
-
-        if "." in last_number:
-            return
-
-    # OPERATORS
-    if value in [
-        "+",
-        "−",
-        "×",
-        "÷"
-    ]:
-
-        expression = (
-            st.session_state.expression
-        )
-
-        if not expression:
-
-            if value == "−":
-
-                st.session_state.expression = "-"
-                st.session_state.display = "-"
-
-            return
-
-        if expression[-1] in "+-*/":
-
-            st.session_state.expression = (
-                expression[:-1] + actual
-            )
-
-            st.session_state.display = (
-                st.session_state.expression
-            )
-
-            return
-
-    st.session_state.expression += actual
-
-    st.session_state.display = (
-        st.session_state.expression
-    )
-
-
-# ============================================================
-# PREMIUM CSS
-# ============================================================
-
-st.markdown(
-"""
 <style>
 
-@import url(
-'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
-);
+* {
+    box-sizing: border-box;
+}
 
-/* ========================================================
-   BACKGROUND
-======================================================== */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+    font-family: "Poppins", "Segoe UI", Arial, sans-serif;
+}
 
-.stApp {
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
 
     background:
         radial-gradient(
-            circle at 15% 15%,
-            rgba(99,102,241,.18),
-            transparent 30%
+            circle at 15% 12%,
+            rgba(255,255,255,.50),
+            transparent 28%
         ),
-
         radial-gradient(
-            circle at 85% 85%,
-            rgba(14,165,233,.13),
-            transparent 30%
+            circle at 88% 86%,
+            rgba(255,255,255,.30),
+            transparent 25%
         ),
-
-        #070B14;
-
-    font-family:
-        'Inter',
-        sans-serif;
-
+        #eac8f5;
 }
 
-/* ========================================================
-   REMOVE STREAMLIT UI
-======================================================== */
-
-#MainMenu {
-    visibility: hidden;
-}
-
-header {
-    visibility: hidden;
-}
-
-footer {
-    visibility: hidden;
-}
-
-.block-container {
-
-    max-width: 440px !important;
-
-    padding-top: 30px !important;
-
-    padding-bottom: 30px !important;
-}
-
-/* ========================================================
-   MAIN CARD
-======================================================== */
+/* ============================================================
+   CALCULATOR
+============================================================ */
 
 .calculator {
+    width: min(100%, 350px);
+
+    padding: 28px 23px 25px;
+
+    border-radius: 34px;
 
     background:
-        rgba(17,24,39,.92);
-
-    border:
-        1px solid rgba(255,255,255,.07);
-
-    border-radius:
-        24px;
-
-    padding:
-        24px;
+        linear-gradient(
+            145deg,
+            #ffffff,
+            #f7f7f9
+        );
 
     box-shadow:
-        0 30px 80px rgba(0,0,0,.55);
+        16px 18px 35px rgba(142,105,157,.22),
+        -9px -9px 24px rgba(255,255,255,.55),
+        inset 1px 1px 2px rgba(255,255,255,.95);
 
-    animation:
-        cardEnter .55s ease;
-
+    animation: rise .65s cubic-bezier(.2,.8,.2,1);
 }
 
-@keyframes cardEnter {
+@keyframes rise {
 
     from {
-
         opacity: 0;
-
         transform:
-            translateY(25px);
-
+            translateY(18px)
+            scale(.97);
     }
 
     to {
-
         opacity: 1;
-
         transform:
-            translateY(0);
-
+            translateY(0)
+            scale(1);
     }
-
 }
 
-/* ========================================================
-   HEADER
-======================================================== */
+/* ============================================================
+   BRAND
+============================================================ */
 
-.header {
+.brand {
 
-    display:
-        flex;
+    margin:
+        0 0 18px 4px;
 
-    align-items:
-        center;
+    font-size: 11px;
 
-    justify-content:
-        space-between;
+    font-weight: 700;
 
-    margin-bottom:
-        18px;
+    letter-spacing: 3px;
 
+    text-transform: uppercase;
+
+    color: #b39abb;
 }
 
-.logo {
-
-    font-size:
-        20px;
-
-    font-weight:
-        800;
-
-    color:
-        white;
-
-    letter-spacing:
-        .5px;
-
-}
-
-.logo span {
-
-    color:
-        #6366F1;
-
-}
-
-.online {
-
-    font-size:
-        10px;
-
-    color:
-        #64748B;
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    gap:
-        6px;
-
-}
-
-.dot {
-
-    width:
-        7px;
-
-    height:
-        7px;
-
-    background:
-        #22C55E;
-
-    border-radius:
-        50%;
-
-    box-shadow:
-        0 0 10px #22C55E;
-
-}
-
-/* ========================================================
+/* ============================================================
    DISPLAY
-======================================================== */
+============================================================ */
 
-.display {
+.screen {
 
-    height:
-        120px;
+    min-height: 92px;
 
     padding:
-        18px 20px;
+        15px 18px 13px;
 
-    border-radius:
-        18px;
+    margin-bottom: 27px;
 
-    background:
-        #0B1120;
+    border-radius: 25px;
 
-    border:
-        1px solid rgba(255,255,255,.06);
+    background: #edf5f5;
 
     box-shadow:
-        inset 0 3px 15px rgba(0,0,0,.30);
 
-    display:
-        flex;
+        inset 5px 5px 12px
+        rgba(196,209,210,.25),
 
-    flex-direction:
-        column;
+        inset -5px -5px 12px
+        rgba(255,255,255,.95),
 
-    justify-content:
-        flex-end;
+        5px 7px 15px
+        rgba(166,169,173,.15);
 
-    align-items:
-        flex-end;
+    display: flex;
 
-    overflow:
-        hidden;
+    flex-direction: column;
 
-    margin-bottom:
-        18px;
+    align-items: flex-end;
 
+    justify-content: center;
+
+    overflow: hidden;
 }
 
 .expression {
 
-    color:
-        #64748B;
+    width: 100%;
 
-    font-size:
-        13px;
+    min-height: 18px;
 
-    width:
-        100%;
+    text-align: right;
 
-    text-align:
-        right;
+    font-size: 12px;
 
-    overflow:
-        hidden;
+    color: #9a9da1;
 
-    text-overflow:
-        ellipsis;
+    white-space: nowrap;
 
+    overflow: hidden;
+
+    text-overflow: ellipsis;
 }
 
 .result {
 
-    color:
-        #F8FAFC;
+    width: 100%;
 
-    font-size:
-        40px;
+    text-align: right;
 
-    font-weight:
-        500;
+    font-size: clamp(
+        35px,
+        10vw,
+        43px
+    );
 
-    width:
-        100%;
+    font-weight: 300;
 
-    text-align:
-        right;
+    letter-spacing: -1.5px;
 
-    overflow:
-        hidden;
+    line-height: 1.2;
 
-    text-overflow:
-        ellipsis;
+    white-space: nowrap;
 
-    animation:
-        numberIn .18s ease;
+    overflow: hidden;
 
+    text-overflow: ellipsis;
+
+    color: #74767b;
+
+    animation: numberIn .18s ease;
 }
 
 @keyframes numberIn {
 
     from {
-
-        opacity:
-            .4;
-
-        transform:
-            translateY(4px);
-
+        opacity: .3;
+        transform: translateY(3px);
     }
 
     to {
-
-        opacity:
-            1;
-
-        transform:
-            translateY(0);
-
+        opacity: 1;
+        transform: translateY(0);
     }
-
 }
 
-/* ========================================================
+/* ============================================================
+   BUTTON GRID
+============================================================ */
+
+.keys {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 14px 12px;
+}
+
+/* ============================================================
    BUTTONS
-======================================================== */
+============================================================ */
 
-div.stButton > button {
+button {
 
-    width:
-        100% !important;
+    border: 0;
 
-    height:
-        58px !important;
+    min-width: 0;
 
-    border-radius:
-        15px !important;
+    aspect-ratio: 1;
+
+    border-radius: 50%;
 
     background:
-        #182235 !important;
+        linear-gradient(
+            145deg,
+            #f2f6f8,
+            #e8edf0
+        );
 
-    color:
-        #E2E8F0 !important;
+    color: #30343a;
 
-    border:
-        1px solid rgba(255,255,255,.05) !important;
+    font:
+        500 15px
+        "Poppins",
+        "Segoe UI",
+        Arial,
+        sans-serif;
 
-    font-family:
-        'Inter',
-        sans-serif !important;
-
-    font-size:
-        17px !important;
-
-    font-weight:
-        600 !important;
+    cursor: pointer;
 
     box-shadow:
-        0 5px 12px rgba(0,0,0,.20) !important;
+
+        6px 6px 12px
+        rgba(179,183,189,.38),
+
+        -5px -5px 11px
+        rgba(255,255,255,.96);
 
     transition:
-        all .15s ease !important;
+        transform .14s ease,
+        box-shadow .14s ease,
+        filter .14s ease;
 
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* ========================================================
-   HOVER
-======================================================== */
+button:hover {
 
-@media (hover:hover) {
-
-    div.stButton > button:hover {
-
-        background:
-            #22304A !important;
-
-        color:
-            white !important;
-
-        transform:
-            translateY(-2px) !important;
-
-        box-shadow:
-            0 9px 22px rgba(0,0,0,.30) !important;
-
-    }
-
-}
-
-/* ========================================================
-   PRESS
-======================================================== */
-
-div.stButton > button:active {
+    filter: brightness(1.025);
 
     transform:
-        scale(.94) !important;
-
-}
-
-/* ========================================================
-   SPECIAL
-======================================================== */
-
-.special div.stButton > button {
-
-    background:
-        #211D38 !important;
-
-    color:
-        #A78BFA !important;
-
-}
-
-.clear div.stButton > button {
-
-    background:
-        #321E29 !important;
-
-    color:
-        #FB7185 !important;
-
-}
-
-/* ========================================================
-   EQUAL
-======================================================== */
-
-.equal div.stButton > button {
-
-    background:
-        linear-gradient(
-            135deg,
-            #6366F1,
-            #4F46E5
-        ) !important;
-
-    color:
-        white !important;
+        translateY(-2px);
 
     box-shadow:
-        0 8px 20px
-        rgba(79,70,229,.30) !important;
 
+        7px 8px 14px
+        rgba(179,183,189,.35),
+
+        -5px -5px 11px
+        rgba(255,255,255,.98);
 }
 
-.equal div.stButton > button:hover {
+button:active {
+
+    transform:
+        translateY(1px)
+        scale(.94);
+
+    box-shadow:
+
+        inset 4px 4px 8px
+        rgba(179,183,189,.30),
+
+        inset -4px -4px 8px
+        rgba(255,255,255,.9);
+}
+
+/* ============================================================
+   UTILITY BUTTONS
+============================================================ */
+
+button.utility {
+
+    font-size: 13px;
 
     background:
         linear-gradient(
-            135deg,
-            #7477FF,
-            #5B55F0
-        ) !important;
+            145deg,
+            #f4f6f8,
+            #e9edf0
+        );
+}
+
+/* ============================================================
+   OPERATORS
+============================================================ */
+
+button.operator {
+
+    font-size: 19px;
+
+    color: #777780;
+}
+
+/* ============================================================
+   EQUAL BUTTON
+============================================================ */
+
+button.equals {
+
+    grid-column: span 2;
+
+    aspect-ratio: auto;
+
+    border-radius: 999px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #edbad6,
+            #e5a7c9
+        );
+
+    color: white;
+
+    font-size: 21px;
+
+    font-weight: 600;
+
+    box-shadow:
+
+        6px 7px 14px
+        rgba(190,128,162,.30),
+
+        -4px -4px 10px
+        rgba(255,255,255,.90);
+}
+
+button.equals:hover {
+
+    filter: brightness(1.04);
 
 }
 
-/* ========================================================
-   SPACING
-======================================================== */
+button.equals:active {
 
-div[data-testid="stHorizontalBlock"] {
+    box-shadow:
 
-    gap:
-        9px !important;
+        inset 4px 4px 8px
+        rgba(160,91,129,.22),
 
-    margin-bottom:
-        9px !important;
-
+        inset -4px -4px 8px
+        rgba(255,255,255,.35);
 }
 
-/* ========================================================
-   HISTORY
-======================================================== */
+/* ============================================================
+   FOOTER
+============================================================ */
 
-.history-title {
+.footer {
 
-    color:
-        #64748B;
+    margin:
+        22px 0 0;
 
-    font-size:
-        10px;
+    text-align: center;
 
-    font-weight:
-        700;
+    color: #b3a4b9;
 
-    letter-spacing:
-        1.5px;
+    font-size: 10px;
 
-    margin-top:
-        18px;
-
+    letter-spacing: 1.7px;
 }
 
-.history-item {
-
-    color:
-        #94A3B8;
-
-    font-size:
-        11px;
-
-    padding:
-        6px 0;
-
-    border-bottom:
-        1px solid rgba(255,255,255,.04);
-
-    text-align:
-        right;
-
-}
-
-/* ========================================================
-   KEYBOARD
-======================================================== */
-
-.keyboard {
-
-    text-align:
-        center;
-
-    color:
-        #475569;
-
-    font-size:
-        10px;
-
-    margin-top:
-        15px;
-
-}
-
-/* ========================================================
+/* ============================================================
    MOBILE
-======================================================== */
+============================================================ */
 
-@media (max-width:500px) {
+@media (max-width: 390px) {
 
-    .block-container {
-
-        padding:
-            15px 10px !important;
-
+    body {
+        padding: 14px;
     }
 
     .calculator {
 
         padding:
-            18px;
+            23px 18px 20px;
 
+        border-radius: 29px;
     }
 
-    div.stButton > button {
-
-        height:
-            53px !important;
-
+    .keys {
+        gap: 12px 10px;
     }
 
-    .result {
-
-        font-size:
-            34px;
-
+    button {
+        font-size: 14px;
     }
-
 }
 
 </style>
-""",
-unsafe_allow_html=True
-)
+</head>
+
+<body>
 
+<main class="calculator" aria-label="Calculator">
 
-# ============================================================
-# CALCULATOR UI
-# ============================================================
+    <p class="brand">
+        Soft • Calculate
+    </p>
 
-st.markdown(
-    '<div class="calculator">',
-    unsafe_allow_html=True
-)
+    <section
+        class="screen"
+        aria-live="polite"
+        aria-atomic="true"
+    >
 
-# HEADER
+        <div
+            class="expression"
+            id="expression">
+        </div>
 
-st.markdown(
-"""
-<div class="header">
+        <div
+            class="result"
+            id="result">
+            0
+        </div>
 
-    <div class="logo">
-        NEXA<span>CALC</span>
-    </div>
+    </section>
 
-    <div class="online">
-        <div class="dot"></div>
-        READY
-    </div>
+    <section
+        class="keys"
+        aria-label="Calculator keys"
+    >
 
-</div>
-""",
-unsafe_allow_html=True
-)
+        <button
+            class="utility"
+            data-action="clear">
+            clr
+        </button>
 
+        <button
+            class="utility"
+            data-action="delete">
+            DEL
+        </button>
 
-# DISPLAY
+        <button
+            class="utility"
+            data-action="percent">
+            %
+        </button>
 
-st.markdown(
-f"""
-<div class="display">
+        <button
+            class="operator"
+            data-value="/">
+            /
+        </button>
 
-    <div class="expression">
-        {st.session_state.expression or "Ready"}
-    </div>
 
-    <div class="result">
-        {st.session_state.display}
-    </div>
+        <button data-value="7">7</button>
+        <button data-value="8">8</button>
+        <button data-value="9">9</button>
 
-</div>
-""",
-unsafe_allow_html=True
-)
+        <button
+            class="operator"
+            data-value="*">
+            ×
+        </button>
 
 
-# ============================================================
-# ROW 1
-# ============================================================
+        <button data-value="4">4</button>
+        <button data-value="5">5</button>
+        <button data-value="6">6</button>
 
-cols = st.columns(4)
+        <button
+            class="operator"
+            data-value="-">
+            −
+        </button>
 
-for col, value in zip(
-    cols,
-    ["AC", "DEL", "%", "÷"]
-):
 
-    with col:
+        <button data-value="1">1</button>
+        <button data-value="2">2</button>
+        <button data-value="3">3</button>
 
-        if value in ["AC", "DEL"]:
+        <button
+            class="operator"
+            data-value="+">
+            +
+        </button>
 
-            st.markdown(
-                '<div class="clear">',
-                unsafe_allow_html=True
-            )
 
-        else:
+        <button data-value=".">.</button>
 
-            st.markdown(
-                '<div class="special">',
-                unsafe_allow_html=True
-            )
+        <button data-value="0">0</button>
 
-        if st.button(
-            value,
-            key=f"r1_{value}"
-        ):
+        <button
+            class="equals"
+            data-action="equals">
+            =
+        </button>
 
-            calculate_action(value)
-            st.rerun()
+    </section>
 
-        st.markdown(
-            "</div>",
-            unsafe_allow_html=True
-        )
+    <p class="footer">
+        SIMPLE • SMOOTH • SMART
+    </p>
 
+</main>
 
-# ============================================================
-# NUMBER ROWS
-# ============================================================
 
-rows = [
-    ["7", "8", "9", "×"],
-    ["4", "5", "6", "−"],
-    ["1", "2", "3", "+"],
-]
-
-for row_number, row in enumerate(rows):
-
-    cols = st.columns(4)
-
-    for col, value in zip(cols, row):
-
-        with col:
-
-            if value in [
-                "×",
-                "−",
-                "+"
-            ]:
-
-                st.markdown(
-                    '<div class="special">',
-                    unsafe_allow_html=True
-                )
-
-            if st.button(
-                value,
-                key=f"row{row_number}_{value}"
-            ):
-
-                calculate_action(value)
-                st.rerun()
-
-            if value in [
-                "×",
-                "−",
-                "+"
-            ]:
-
-                st.markdown(
-                    "</div>",
-                    unsafe_allow_html=True
-                )
-
-
-# ============================================================
-# LAST ROW
-# ============================================================
-
-cols = st.columns(4)
-
-last_buttons = [
-    ".",
-    "0",
-    "⌫",
-    "="
-]
-
-for col, value in zip(
-    cols,
-    last_buttons
-):
-
-    with col:
-
-        if value == "=":
-
-            st.markdown(
-                '<div class="equal">',
-                unsafe_allow_html=True
-            )
-
-        if st.button(
-            value,
-            key=f"last_{value}"
-        ):
-
-            if value == "⌫":
-
-                calculate_action("DEL")
-
-            else:
-
-                calculate_action(value)
-
-            st.rerun()
-
-        if value == "=":
-
-            st.markdown(
-                "</div>",
-                unsafe_allow_html=True
-            )
-
-
-# ============================================================
-# HISTORY
-# ============================================================
-
-if st.session_state.history:
-
-    st.markdown(
-        '<div class="history-title">RECENT CALCULATIONS</div>',
-        unsafe_allow_html=True
-    )
-
-    for item in st.session_state.history[:3]:
-
-        st.markdown(
-            f'<div class="history-item">{item}</div>',
-            unsafe_allow_html=True
-        )
-
-
-st.markdown(
-"""
-<div class="keyboard">
-    ⌨ 0–9 &nbsp; + − * / &nbsp; ENTER = &nbsp;
-    BACKSPACE = DEL &nbsp; ESC = AC
-</div>
-""",
-unsafe_allow_html=True
-)
-
-
-st.markdown(
-    "</div>",
-    unsafe_allow_html=True
-)
-
-
-# ============================================================
-# KEYBOARD SUPPORT
-# ============================================================
-
-components.html(
-"""
 <script>
 
-(function () {
+(() => {
 
-    const parent = window.parent.document;
+    const resultEl =
+        document.getElementById("result");
 
-    if (parent.__nexaKeyboard) {
-        return;
+    const expressionEl =
+        document.getElementById("expression");
+
+    let expression = "";
+
+    let justEvaluated = false;
+
+
+    /* ========================================================
+       DISPLAY
+    ======================================================== */
+
+    function render(value = expression || "0") {
+
+        resultEl.textContent = value;
+
+        expressionEl.textContent =
+            expression &&
+            !justEvaluated
+                ? expression
+                    .replaceAll("*", "×")
+                    .replaceAll("-", "−")
+                : "";
+
     }
 
-    parent.__nexaKeyboard = true;
 
-    parent.addEventListener(
-        "keydown",
-        function(event) {
+    /* ========================================================
+       SAFE CALCULATOR
+    ======================================================== */
 
-            let value = null;
+    function safeCalculate(input) {
 
-            const key = event.key;
+        input = input.trim();
 
-            // NUMBERS
-            if (/^[0-9]$/.test(key)) {
-                value = key;
-            }
+        if (!input) {
+            throw new Error("Incomplete expression");
+        }
 
-            // OPERATORS
-            else if (key === "+") {
-                value = "+";
-            }
+        /*
+         * Only calculator characters.
+         */
+        if (!/^[0-9+\-*/().\s]+$/.test(input)) {
+            throw new Error("Invalid expression");
+        }
 
-            else if (key === "-") {
-                value = "−";
-            }
+        /*
+         * Expression cannot end with operator.
+         */
+        if (/[+\-*/.]$/.test(input)) {
+            throw new Error("Incomplete expression");
+        }
 
-            else if (key === "*") {
-                value = "×";
-            }
+        /*
+         * Tokenizer
+         */
+        const tokens =
+            input.match(
+                /(?:\d+(?:\.\d*)?|\.\d+|[()+\-*/])/g
+            );
 
-            else if (key === "/") {
-                value = "÷";
-            }
+        if (!tokens) {
+            throw new Error("Invalid expression");
+        }
 
-            else if (key === "%") {
-                value = "%";
-            }
+        if (
+            tokens.join("") !==
+            input.replace(/\s/g, "")
+        ) {
+            throw new Error("Invalid expression");
+        }
 
-            else if (key === ".") {
-                value = ".";
-            }
 
-            // ENTER
-            else if (
-                key === "Enter" ||
-                key === "="
+        let pos = 0;
+
+
+        /* ----------------------------------------------------
+           Addition / subtraction
+        ---------------------------------------------------- */
+
+        function parseExpression() {
+
+            let value = parseTerm();
+
+            while (
+                tokens[pos] === "+" ||
+                tokens[pos] === "-"
             ) {
-                value = "=";
+
+                const op = tokens[pos++];
+
+                const right = parseTerm();
+
+                if (op === "+") {
+                    value += right;
+                } else {
+                    value -= right;
+                }
             }
 
-            // DELETE
-            else if (key === "Backspace") {
-                value = "⌫";
+            return value;
+        }
+
+
+        /* ----------------------------------------------------
+           Multiplication / division
+        ---------------------------------------------------- */
+
+        function parseTerm() {
+
+            let value = parseUnary();
+
+            while (
+                tokens[pos] === "*" ||
+                tokens[pos] === "/"
+            ) {
+
+                const op = tokens[pos++];
+
+                const right = parseUnary();
+
+                if (
+                    op === "/" &&
+                    right === 0
+                ) {
+                    throw new Error(
+                        "Cannot divide by zero"
+                    );
+                }
+
+                if (op === "*") {
+                    value *= right;
+                } else {
+                    value /= right;
+                }
             }
 
-            // CLEAR
-            else if (key === "Escape") {
-                value = "AC";
+            return value;
+        }
+
+
+        /* ----------------------------------------------------
+           Unary operators
+        ---------------------------------------------------- */
+
+        function parseUnary() {
+
+            if (tokens[pos] === "+") {
+
+                pos++;
+
+                return parseUnary();
             }
 
-            if (!value) {
+            if (tokens[pos] === "-") {
+
+                pos++;
+
+                return -parseUnary();
+            }
+
+            return parsePrimary();
+        }
+
+
+        /* ----------------------------------------------------
+           Numbers + parentheses
+        ---------------------------------------------------- */
+
+        function parsePrimary() {
+
+            if (tokens[pos] === "(") {
+
+                pos++;
+
+                const value =
+                    parseExpression();
+
+                if (tokens[pos++] !== ")") {
+
+                    throw new Error(
+                        "Missing bracket"
+                    );
+                }
+
+                return value;
+            }
+
+
+            const token =
+                tokens[pos++];
+
+            if (
+                !token ||
+                !/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(token)
+            ) {
+
+                throw new Error(
+                    "Invalid expression"
+                );
+            }
+
+            return Number(token);
+        }
+
+
+        const answer =
+            parseExpression();
+
+
+        if (
+            pos !== tokens.length ||
+            !Number.isFinite(answer)
+        ) {
+
+            throw new Error(
+                "Invalid result"
+            );
+        }
+
+
+        return Number(
+            answer.toPrecision(12)
+        ).toString();
+
+    }
+
+
+    /* ========================================================
+       ADD VALUE
+    ======================================================== */
+
+    function addValue(value) {
+
+        if (
+            justEvaluated &&
+            /[0-9.]/.test(value)
+        ) {
+            expression = "";
+        }
+
+        justEvaluated = false;
+
+
+        const last =
+            expression.slice(-1);
+
+
+        /*
+         * Operators
+         */
+
+        if ("+-*/".includes(value)) {
+
+            if (
+                !expression &&
+                value !== "-"
+            ) {
                 return;
             }
 
-            event.preventDefault();
+            if (
+                "+-*/".includes(last)
+            ) {
 
-            const buttons =
-                parent.querySelectorAll(
-                    "button"
-                );
+                expression =
+                    expression.slice(0, -1);
+            }
+        }
 
-            for (const button of buttons) {
 
-                if (
-                    button.innerText.trim()
-                    === value
-                ) {
+        /*
+         * Decimal
+         */
 
-                    button.click();
+        if (value === ".") {
 
-                    break;
+            const currentNumber =
+                expression
+                    .split(/[+\-*/]/)
+                    .pop();
+
+            if (
+                currentNumber.includes(".")
+            ) {
+                return;
+            }
+
+            if (!currentNumber) {
+                expression += "0";
+            }
+        }
+
+
+        expression += value;
+
+        render();
+    }
+
+
+    /* ========================================================
+       CALCULATE
+    ======================================================== */
+
+    function calculate() {
+
+        try {
+
+            const answer =
+                safeCalculate(expression);
+
+            expressionEl.textContent =
+                expression
+                    .replaceAll("*", "×")
+                    .replaceAll("-", "−")
+                + " =";
+
+            resultEl.textContent =
+                answer;
+
+            expression = answer;
+
+            justEvaluated = true;
+
+        } catch (error) {
+
+            if (
+                error.message ===
+                "Cannot divide by zero"
+            ) {
+
+                resultEl.textContent =
+                    "Cannot divide by 0";
+
+            } else {
+
+                resultEl.textContent =
+                    "Error";
+            }
+
+            justEvaluated = true;
+        }
+    }
+
+
+    /* ========================================================
+       ACTIONS
+    ======================================================== */
+
+    function handleAction(action) {
+
+        /*
+         * CLEAR
+         */
+
+        if (action === "clear") {
+
+            expression = "";
+
+            justEvaluated = false;
+
+            render("0");
+        }
+
+
+        /*
+         * DELETE
+         */
+
+        else if (action === "delete") {
+
+            if (justEvaluated) {
+
+                expression = "";
+
+                justEvaluated = false;
+
+            } else {
+
+                expression =
+                    expression.slice(0, -1);
+            }
+
+            render();
+        }
+
+
+        /*
+         * EQUALS
+         */
+
+        else if (action === "equals") {
+
+            calculate();
+        }
+
+
+        /*
+         * PERCENT
+         */
+
+        else if (action === "percent") {
+
+            if (!expression) {
+                return;
+            }
+
+            try {
+
+                expression =
+                    (
+                        safeCalculate(expression)
+                        / 100
+                    ).toString();
+
+                justEvaluated = false;
+
+                render();
+
+            } catch (error) {
+
+                resultEl.textContent =
+                    "Error";
+            }
+        }
+    }
+
+
+    /* ========================================================
+       MOUSE / TOUCH
+    ======================================================== */
+
+    document
+        .querySelector(".keys")
+        .addEventListener(
+            "click",
+            event => {
+
+                const button =
+                    event.target.closest(
+                        "button"
+                    );
+
+                if (!button) {
+                    return;
                 }
+
+
+                if (button.dataset.action) {
+
+                    handleAction(
+                        button.dataset.action
+                    );
+
+                } else {
+
+                    addValue(
+                        button.dataset.value
+                    );
+                }
+
+            }
+        );
+
+
+    /* ========================================================
+       KEYBOARD SUPPORT
+    ======================================================== */
+
+    document.addEventListener(
+        "keydown",
+        event => {
+
+            /*
+             * Numbers
+             */
+
+            if (/^[0-9.]$/.test(event.key)) {
+
+                addValue(event.key);
+
+                return;
+            }
+
+
+            /*
+             * Operators
+             */
+
+            if (
+                ["+", "-", "*", "/"]
+                .includes(event.key)
+            ) {
+
+                addValue(event.key);
+
+                return;
+            }
+
+
+            /*
+             * Enter / =
+             */
+
+            if (
+                event.key === "Enter" ||
+                event.key === "="
+            ) {
+
+                event.preventDefault();
+
+                calculate();
+
+                return;
+            }
+
+
+            /*
+             * Backspace
+             */
+
+            if (
+                event.key === "Backspace"
+            ) {
+
+                handleAction("delete");
+
+                return;
+            }
+
+
+            /*
+             * Escape / Delete
+             */
+
+            if (
+                event.key === "Escape" ||
+                event.key === "Delete"
+            ) {
+
+                handleAction("clear");
+
+                return;
+            }
+
+
+            /*
+             * Percentage
+             */
+
+            if (event.key === "%") {
+
+                handleAction("percent");
 
             }
 
         }
-
     );
 
 })();
 
 </script>
-""",
-height=0
+
+</body>
+</html>
+"""
+
+# ============================================================
+# STREAMLIT APP
+# ============================================================
+
+components.html(
+    HTML_PAGE,
+    height=700,
+    scrolling=False,
 )
