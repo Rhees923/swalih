@@ -4,18 +4,18 @@ import operator
 import re
 
 # ============================================================
-# PAGE
+# PAGE CONFIG
 # ============================================================
 
 st.set_page_config(
-    page_title="CircleCalc",
+    page_title="NOVA CALC",
     page_icon="🧮",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # ============================================================
-# STATE
+# SESSION STATE
 # ============================================================
 
 if "expression" not in st.session_state:
@@ -24,11 +24,15 @@ if "expression" not in st.session_state:
 if "display" not in st.session_state:
     st.session_state.display = "0"
 
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+
 # ============================================================
-# SAFE CALCULATOR
+# SAFE CALCULATOR ENGINE
 # ============================================================
 
-OPS = {
+OPERATORS = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,
     ast.Mult: operator.mul,
@@ -44,7 +48,7 @@ def calculate(expression):
     if not expression:
         return "0"
 
-    # Convert percentage
+    # Percentage
     expression = re.sub(
         r"(\d+(?:\.\d+)?)%",
         r"(\1/100)",
@@ -72,7 +76,7 @@ def calculate(expression):
                 left = evaluate(node.left)
                 right = evaluate(node.right)
 
-                operation = OPS.get(type(node.op))
+                operation = OPERATORS.get(type(node.op))
 
                 if operation is None:
                     raise ValueError()
@@ -84,7 +88,7 @@ def calculate(expression):
 
             if isinstance(node, ast.UnaryOp):
 
-                operation = OPS.get(type(node.op))
+                operation = OPERATORS.get(type(node.op))
 
                 if operation is None:
                     raise ValueError()
@@ -112,19 +116,17 @@ def calculate(expression):
 
 
 # ============================================================
-# BUTTON FUNCTION
+# INPUT HANDLER
 # ============================================================
 
-def button_press(value):
+def press(value):
 
-    # CLEAR
-    if value == "C":
+    if value == "AC":
 
         st.session_state.expression = ""
         st.session_state.display = "0"
         return
 
-    # DELETE
     if value == "DEL":
 
         st.session_state.expression = (
@@ -132,27 +134,40 @@ def button_press(value):
         )
 
         st.session_state.display = (
-            st.session_state.expression
-            or "0"
+            st.session_state.expression or "0"
         )
 
         return
 
-    # EQUAL
     if value == "=":
 
-        result = calculate(
-            st.session_state.expression
-        )
+        expression = st.session_state.expression
 
-        st.session_state.display = result
+        if not expression:
+            return
+
+        result = calculate(expression)
 
         if result != "Error":
+
+            st.session_state.history.insert(
+                0,
+                f"{expression} = {result}"
+            )
+
+            st.session_state.history = (
+                st.session_state.history[:5]
+            )
+
+            st.session_state.display = result
             st.session_state.expression = result
+
+        else:
+
+            st.session_state.display = "Error"
 
         return
 
-    # SYMBOLS
     symbols = {
         "÷": "/",
         "×": "*",
@@ -182,8 +197,10 @@ def button_press(value):
         if not expression:
 
             if value == "−":
+
                 st.session_state.expression = "-"
                 st.session_state.display = "-"
+
             return
 
         if expression[-1] in "+-*/":
@@ -213,30 +230,39 @@ st.markdown("""
 <style>
 
 @import url(
-'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap'
+'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
 );
 
-/* =========================
-   BACKGROUND
-========================= */
+/* ==========================================================
+   BODY
+========================================================== */
 
 .stApp {
 
-    background: #EBC8F7;
+    background:
+        radial-gradient(
+            circle at 10% 10%,
+            rgba(124,58,237,.20),
+            transparent 30%
+        ),
 
-    font-family: 'Poppins', sans-serif;
+        radial-gradient(
+            circle at 90% 90%,
+            rgba(59,130,246,.15),
+            transparent 30%
+        ),
+
+        #080B14;
+
+    font-family: 'Inter', sans-serif;
 
 }
 
-/* =========================
-   STREAMLIT CLEANUP
-========================= */
+/* ==========================================================
+   HIDE STREAMLIT UI
+========================================================== */
 
 #MainMenu {
-    visibility: hidden;
-}
-
-footer {
     visibility: hidden;
 }
 
@@ -244,327 +270,435 @@ header {
     visibility: hidden;
 }
 
-.block-container {
-
-    padding-top: 30px !important;
-
-    padding-bottom: 30px !important;
-
+footer {
+    visibility: hidden;
 }
 
-/* =========================
+.block-container {
+
+    max-width: 430px !important;
+
+    padding-top: 35px !important;
+
+    padding-bottom: 30px !important;
+}
+
+/* ==========================================================
    CALCULATOR
-========================= */
+========================================================== */
 
-.calc {
+.calculator {
 
-    width: 340px;
+    padding: 24px;
 
-    margin: auto;
+    border-radius: 28px;
 
-    padding: 25px;
+    background:
+        rgba(18, 24, 39, .88);
 
-    border-radius: 42px;
-
-    background: #F8F7F3;
+    border:
+        1px solid rgba(255,255,255,.08);
 
     box-shadow:
 
-        15px 15px 35px
-        rgba(145,110,150,.28),
+        0 30px 80px
+        rgba(0,0,0,.55),
 
-        -15px -15px 35px
-        rgba(255,255,255,.75);
+        inset 0 1px 1px
+        rgba(255,255,255,.04);
 
+    backdrop-filter: blur(20px);
+
+    animation: calculatorIn .6s ease;
 }
 
-/* =========================
-   LOGO
-========================= */
+@keyframes calculatorIn {
 
-.logo {
+    from {
+        opacity: 0;
+        transform: translateY(25px) scale(.97);
+    }
 
-    width: 55px;
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
 
-    height: 55px;
+/* ==========================================================
+   HEADER
+========================================================== */
 
-    margin: 0 auto 10px;
-
-    border-radius: 50%;
+.brand {
 
     display: flex;
 
     align-items: center;
 
-    justify-content: center;
+    justify-content: space-between;
 
-    background: #EAF2F4;
+    margin-bottom: 20px;
+}
 
-    color: #B783A0;
+.brand-name {
 
-    font-size: 25px;
+    color: #ffffff;
+
+    font-size: 18px;
+
+    font-weight: 800;
+
+    letter-spacing: 1px;
+}
+
+.brand-name span {
+
+    color: #8b5cf6;
+}
+
+.status {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    color: #94a3b8;
+
+    font-size: 11px;
+}
+
+.status-dot {
+
+    width: 7px;
+
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: #22c55e;
 
     box-shadow:
-
-        6px 6px 12px
-        rgba(170,150,175,.28),
-
-        -6px -6px 12px
-        rgba(255,255,255,.9);
+        0 0 10px #22c55e;
 
 }
 
-/* =========================
-   TITLE
-========================= */
+/* ==========================================================
+   DISPLAY
+========================================================== */
 
-.title {
+.display {
 
-    text-align: center;
+    min-height: 125px;
 
-    color: #77717A;
+    padding: 22px;
+
+    border-radius: 22px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #111827,
+            #0b1120
+        );
+
+    border:
+        1px solid rgba(255,255,255,.06);
+
+    box-shadow:
+        inset 0 5px 20px rgba(0,0,0,.25);
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: flex-end;
+
+    align-items: flex-end;
+
+    overflow: hidden;
+
+    margin-bottom: 20px;
+}
+
+.expression {
+
+    width: 100%;
+
+    text-align: right;
+
+    color: #64748b;
+
+    font-size: 14px;
+
+    min-height: 22px;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+.result {
+
+    max-width: 100%;
+
+    color: #f8fafc;
+
+    font-size: 42px;
+
+    font-weight: 500;
+
+    letter-spacing: -1px;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    animation: resultIn .18s ease;
+}
+
+@keyframes resultIn {
+
+    from {
+        opacity: .3;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================================
+   BUTTONS
+========================================================== */
+
+div.stButton > button {
+
+    width: 100%;
+
+    height: 58px;
+
+    border-radius: 17px;
+
+    border:
+        1px solid rgba(255,255,255,.06);
+
+    background:
+        #1a2233;
+
+    color: #e2e8f0;
+
+    font-family: 'Inter', sans-serif;
 
     font-size: 17px;
 
     font-weight: 600;
 
-    letter-spacing: 2px;
-
-    margin-bottom: 18px;
-
-}
-
-/* =========================
-   ROUND DISPLAY
-========================= */
-
-.display {
-
-    width: 100%;
-
-    height: 92px;
-
-    border-radius: 46px;
-
-    background: #EAF2F4;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: flex-end;
-
-    padding: 0 25px;
-
-    box-sizing: border-box;
-
-    overflow: hidden;
-
-    color: #747B80;
-
-    font-size: 32px;
-
-    font-weight: 300;
-
     box-shadow:
+        0 5px 12px rgba(0,0,0,.22);
 
-        inset 6px 6px 12px
-        rgba(180,195,200,.28),
-
-        inset -6px -6px 12px
-        rgba(255,255,255,.9),
-
-        6px 6px 15px
-        rgba(160,145,170,.12);
-
-    margin-bottom: 24px;
+    transition:
+        transform .12s ease,
+        background .12s ease,
+        box-shadow .12s ease;
 
 }
 
-/* =========================
-   BUTTON
-========================= */
-
-div.stButton > button {
-
-    width: 58px !important;
-
-    height: 58px !important;
-
-    min-width: 58px !important;
-
-    max-width: 58px !important;
-
-    padding: 0 !important;
-
-    margin: auto !important;
-
-    border-radius: 50% !important;
-
-    border: none !important;
-
-    background: #EAF2F4 !important;
-
-    color: #70777B !important;
-
-    font-family: 'Poppins', sans-serif !important;
-
-    font-size: 16px !important;
-
-    font-weight: 500 !important;
-
-    box-shadow:
-
-        7px 7px 13px
-        rgba(165,150,175,.30),
-
-        -7px -7px 13px
-        rgba(255,255,255,.88) !important;
-
-    transition: all .15s ease !important;
-
-}
-
-/* =========================
-   HOVER
-========================= */
+/* Hover */
 
 @media (hover:hover) {
 
     div.stButton > button:hover {
 
-        transform: translateY(-3px) !important;
+        color: #ffffff;
 
-        color: #5E6468 !important;
+        background: #243047;
 
-        background: #EAF2F4 !important;
+        transform: translateY(-2px);
 
         box-shadow:
-
-            5px 5px 10px
-            rgba(165,150,175,.28),
-
-            -5px -5px 10px
-            rgba(255,255,255,.9) !important;
+            0 9px 20px rgba(0,0,0,.28);
 
     }
 
 }
 
-/* =========================
-   PRESS
-========================= */
+/* Press */
 
 div.stButton > button:active {
 
-    transform: scale(.93) !important;
+    transform: scale(.94);
 
     box-shadow:
-
-        inset 5px 5px 10px
-        rgba(170,155,180,.30),
-
-        inset -5px -5px 10px
-        rgba(255,255,255,.8) !important;
+        0 2px 5px rgba(0,0,0,.25);
 
 }
 
-/* =========================
+/* ==========================================================
+   OPERATOR BUTTONS
+========================================================== */
+
+.operator div.stButton > button {
+
+    background:
+        #25203b;
+
+    color:
+        #a78bfa;
+
+    border-color:
+        rgba(139,92,246,.15);
+}
+
+.operator div.stButton > button:hover {
+
+    background:
+        #30294b;
+
+}
+
+/* ==========================================================
+   CLEAR
+========================================================== */
+
+.clear div.stButton > button {
+
+    background:
+        #321d2b;
+
+    color:
+        #fb7185;
+
+}
+
+/* ==========================================================
    EQUAL
-========================= */
+========================================================== */
 
-.equal div.stButton > button {
+.equals div.stButton > button {
 
-    background: #E4A6C8 !important;
+    background:
+        linear-gradient(
+            135deg,
+            #8b5cf6,
+            #6366f1
+        );
 
-    color: white !important;
+    color: white;
+
+    border-color:
+        rgba(167,139,250,.25);
 
     box-shadow:
+        0 8px 20px
+        rgba(99,102,241,.28);
+}
 
-        7px 7px 14px
-        rgba(165,125,150,.35),
+.equals div.stButton > button:hover {
 
-        -7px -7px 14px
-        rgba(255,255,255,.8) !important;
+    background:
+        linear-gradient(
+            135deg,
+            #9b6cff,
+            #7476ff
+        );
 
 }
 
-/* =========================
-   SPECIAL
-========================= */
-
-.special div.stButton > button {
-
-    color: #B57999 !important;
-
-    font-size: 13px !important;
-
-}
-
-/* =========================
-   SPACING
-========================= */
+/* ==========================================================
+   BUTTON GAP
+========================================================== */
 
 div[data-testid="stHorizontalBlock"] {
 
-    gap: 8px !important;
+    gap: 9px !important;
 
-    margin-bottom: 10px !important;
-
+    margin-bottom: 9px !important;
 }
 
-/* =========================
-   FOOTER
-========================= */
+/* ==========================================================
+   HISTORY
+========================================================== */
 
-.footer {
+.history-title {
+
+    color: #94a3b8;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    letter-spacing: 1.5px;
+
+    margin-top: 18px;
+
+    margin-bottom: 8px;
+}
+
+.history-item {
+
+    color: #64748b;
+
+    font-size: 12px;
+
+    padding: 6px 0;
+
+    border-bottom:
+        1px solid rgba(255,255,255,.04);
+
+    text-align: right;
+}
+
+/* ==========================================================
+   KEYBOARD
+========================================================== */
+
+.keyboard {
 
     text-align: center;
 
-    margin-top: 20px;
-
-    color: #958B99;
+    color: #475569;
 
     font-size: 10px;
 
-    letter-spacing: 2px;
+    margin-top: 16px;
 
+    letter-spacing: .5px;
 }
 
-/* =========================
+/* ==========================================================
    MOBILE
-========================= */
+========================================================== */
 
 @media (max-width: 500px) {
 
-    .calc {
+    .block-container {
 
-        width: min(340px, 92vw);
+        padding:
+            15px 10px !important;
+    }
 
-        padding: 20px;
+    .calculator {
 
+        padding: 18px;
+
+        border-radius: 24px;
+    }
+
+    .result {
+
+        font-size: 34px;
     }
 
     div.stButton > button {
 
-        width: 54px !important;
+        height: 54px;
 
-        height: 54px !important;
-
-        min-width: 54px !important;
-
-        max-width: 54px !important;
-
+        font-size: 16px;
     }
-
-    .display {
-
-        height: 85px;
-
-        font-size: 28px;
-
-    }
-
 }
 
 </style>
@@ -572,31 +706,57 @@ div[data-testid="stHorizontalBlock"] {
 
 
 # ============================================================
-# OPEN CALCULATOR
+# CALCULATOR START
 # ============================================================
 
 st.markdown(
-    '<div class="calc">',
+    '<div class="calculator">',
     unsafe_allow_html=True
 )
 
-# Logo
-st.markdown(
-    '<div class="logo">＋</div>',
-    unsafe_allow_html=True
+
+# ============================================================
+# HEADER
+# ============================================================
+
+st.markdown("""
+<div class="brand">
+
+    <div class="brand-name">
+        NOVA<span>CALC</span>
+    </div>
+
+    <div class="status">
+        <div class="status-dot"></div>
+        READY
+    </div>
+
+</div>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
+# DISPLAY
+# ============================================================
+
+expression_display = (
+    st.session_state.expression
+    if st.session_state.expression
+    else "Ready"
 )
 
-# Title
-st.markdown(
-    '<div class="title">CIRCLE CALC</div>',
-    unsafe_allow_html=True
-)
-
-# Display
 st.markdown(
     f"""
     <div class="display">
-        {st.session_state.display}
+
+        <div class="expression">
+            {expression_display}
+        </div>
+
+        <div class="result">
+            {st.session_state.display}
+        </div>
+
     </div>
     """,
     unsafe_allow_html=True
@@ -607,165 +767,298 @@ st.markdown(
 # ROW 1
 # ============================================================
 
-columns = st.columns(4)
+cols = st.columns(4)
 
-buttons = ["C", "DEL", "%", "÷"]
+buttons = ["AC", "DEL", "%", "÷"]
 
-for column, value in zip(columns, buttons):
+for col, value in zip(cols, buttons):
 
-    with column:
+    with col:
 
-        st.markdown(
-            '<div class="special">',
-            unsafe_allow_html=True
-        )
+        if value in ["AC", "DEL"]:
+
+            st.markdown(
+                '<div class="clear">',
+                unsafe_allow_html=True
+            )
+
+        else:
+
+            st.markdown(
+                '<div class="operator">',
+                unsafe_allow_html=True
+            )
 
         if st.button(
             value,
-            key=f"r1_{value}"
+            key=f"btn_{value}"
         ):
 
-            button_press(value)
+            press(value)
             st.rerun()
 
-        st.markdown(
-            '</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ============================================================
 # ROW 2
 # ============================================================
 
-columns = st.columns(4)
+cols = st.columns(4)
 
-for column, value in zip(
-    columns,
+for col, value in zip(
+    cols,
     ["7", "8", "9", "×"]
 ):
 
-    with column:
+    with col:
+
+        if value == "×":
+            st.markdown(
+                '<div class="operator">',
+                unsafe_allow_html=True
+            )
 
         if st.button(
             value,
-            key=f"r2_{value}"
+            key=f"btn2_{value}"
         ):
 
-            button_press(value)
+            press(value)
             st.rerun()
+
+        if value == "×":
+            st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ============================================================
 # ROW 3
 # ============================================================
 
-columns = st.columns(4)
+cols = st.columns(4)
 
-for column, value in zip(
-    columns,
+for col, value in zip(
+    cols,
     ["4", "5", "6", "−"]
 ):
 
-    with column:
+    with col:
+
+        if value == "−":
+            st.markdown(
+                '<div class="operator">',
+                unsafe_allow_html=True
+            )
 
         if st.button(
             value,
-            key=f"r3_{value}"
+            key=f"btn3_{value}"
         ):
 
-            button_press(value)
+            press(value)
             st.rerun()
+
+        if value == "−":
+            st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ============================================================
 # ROW 4
 # ============================================================
 
-columns = st.columns(4)
+cols = st.columns(4)
 
-for column, value in zip(
-    columns,
+for col, value in zip(
+    cols,
     ["1", "2", "3", "+"]
 ):
 
-    with column:
+    with col:
+
+        if value == "+":
+            st.markdown(
+                '<div class="operator">',
+                unsafe_allow_html=True
+            )
 
         if st.button(
             value,
-            key=f"r4_{value}"
+            key=f"btn4_{value}"
         ):
 
-            button_press(value)
+            press(value)
             st.rerun()
+
+        if value == "+":
+            st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ============================================================
 # ROW 5
 # ============================================================
 
-columns = st.columns(4)
+cols = st.columns(4)
 
-# Decimal
-with columns[0]:
+for col, value in zip(
+    cols,
+    [".", "0", "⌫", "="]
+):
 
-    if st.button(".", key="decimal"):
+    with col:
 
-        button_press(".")
-        st.rerun()
+        if value == "=":
 
+            st.markdown(
+                '<div class="equals">',
+                unsafe_allow_html=True
+            )
 
-# Zero
-with columns[1]:
+        if st.button(
+            value,
+            key=f"btn5_{value}"
+        ):
 
-    if st.button("0", key="zero"):
+            press(
+                "DEL"
+                if value == "⌫"
+                else value
+            )
 
-        button_press("0")
-        st.rerun()
+            st.rerun()
 
+        if value == "=":
 
-# Equals
-with columns[2]:
-
-    st.markdown(
-        '<div class="equal">',
-        unsafe_allow_html=True
-    )
-
-    if st.button("=", key="equals"):
-
-        button_press("=")
-        st.rerun()
-
-    st.markdown(
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-
-# Extra circular button
-with columns[3]:
-
-    if st.button("⌫", key="backspace"):
-
-        button_press("DEL")
-        st.rerun()
+            st.markdown(
+                "</div>",
+                unsafe_allow_html=True
+            )
 
 
 # ============================================================
-# FOOTER
+# HISTORY
+# ============================================================
+
+if st.session_state.history:
+
+    st.markdown(
+        '<div class="history-title">RECENT</div>',
+        unsafe_allow_html=True
+    )
+
+    for item in st.session_state.history[:3]:
+
+        st.markdown(
+            f'<div class="history-item">{item}</div>',
+            unsafe_allow_html=True
+        )
+
+
+# ============================================================
+# KEYBOARD INFO
 # ============================================================
 
 st.markdown(
     """
-    <div class="footer">
-        MADE WITH PYTHON • CIRCLE CALC
+    <div class="keyboard">
+        KEYBOARD: 0–9 &nbsp; + − * / &nbsp; ENTER &nbsp; BACKSPACE &nbsp; ESC
     </div>
     """,
     unsafe_allow_html=True
 )
 
+
+# ============================================================
+# CLOSE CALCULATOR
+# ============================================================
+
 st.markdown(
-    '</div>',
+    "</div>",
     unsafe_allow_html=True
+)
+
+
+# ============================================================
+# KEYBOARD JAVASCRIPT
+# ============================================================
+
+st.components.v1.html(
+    """
+    <script>
+
+    document.addEventListener("keydown", function(event) {
+
+        const key = event.key;
+
+        let buttonText = null;
+
+        if (/^[0-9]$/.test(key)) {
+            buttonText = key;
+        }
+
+        else if (key === "+") {
+            buttonText = "+";
+        }
+
+        else if (key === "-") {
+            buttonText = "−";
+        }
+
+        else if (key === "*") {
+            buttonText = "×";
+        }
+
+        else if (key === "/") {
+            buttonText = "÷";
+        }
+
+        else if (key === ".") {
+            buttonText = ".";
+        }
+
+        else if (key === "%") {
+            buttonText = "%";
+        }
+
+        else if (key === "Enter" || key === "=") {
+            buttonText = "=";
+        }
+
+        else if (key === "Backspace") {
+            buttonText = "⌫";
+        }
+
+        else if (key === "Escape") {
+            buttonText = "AC";
+        }
+
+        if (buttonText !== null) {
+
+            event.preventDefault();
+
+            const buttons =
+                window.parent.document.querySelectorAll(
+                    'button'
+                );
+
+            for (const button of buttons) {
+
+                if (
+                    button.innerText.trim()
+                    === buttonText
+                ) {
+
+                    button.click();
+                    break;
+
+                }
+
+            }
+
+        }
+
+    });
+
+    </script>
+    """,
+    height=0
 )
